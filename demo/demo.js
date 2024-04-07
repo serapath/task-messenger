@@ -45,12 +45,12 @@ async function boot (opts) {
   // ----------------------------------------
   { // task_messenger
     const on = {
-      'pass_through': pass_through
+      'send': send
     }
     const users = [ 'bob', 'ana' ]
     users.forEach(async username => {
       const protocol = use_protocol('task_messenger'+'_'+username)({ state, on })
-      const element = await task_messenger ( opts = { username, users }, protocol)
+      const element = await task_messenger( opts = { username, users }, protocol)
       shadow.append(element)
     })
   }
@@ -60,14 +60,13 @@ async function boot (opts) {
 
   return
 
-  async function pass_through ({ refs, data}) {
-    refs.to.forEach(user => {
+  async function send ({ data }) {
+    data.users.forEach(user => {
       const channel = state.net[state.aka['task_messenger'+'_'+user]]
       channel.send({
         head: [id, channel.send.id, channel.mid++],
-        refs,
-        type: refs.type,
-        data
+        type: 'send',
+        data: data
       })
     })
   }
@@ -75,6 +74,7 @@ async function boot (opts) {
 function get_theme () {
   return `
     body{
+      color-scheme: dark;
       display: flex;
       margin: 0;
     }
