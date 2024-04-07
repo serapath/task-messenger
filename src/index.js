@@ -1,3 +1,5 @@
+const task_explorer = require('task_explorer')
+// ----------------------------------------
 // MODULE STATE & ID
 var count = 0
 const [cwd, dir] = [process.cwd(), __filename].map(x => new URL(x, 'file://').href)
@@ -18,41 +20,43 @@ async function task_messenger (opts, protocol) {
   const status = {}
   const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {} } // all state of component instance
   const json_data = [
-    {id: '0', name: 'task1', chat: [
+    {id: '0', name: 'roadmapping', chat: [
       {username: 'ana', content: 'How are you'},
       {username: 'bob', content: 'I am doing good'},
     ], children: [
-      {id: '0-0', name: 'childtask1', chat: [], children: []},
-      {id: '0-1', name: 'childtask2', chat: [], children: []},
-      {id: '0-2', name: 'childtask3', chat: [], children: []}
+      {id: '0-0', name: 'create task-messenger', chat: [], inputs: [{name: 'discord-msg'}], outputs: [{name: 'task-messenger.js'}]},
+      {id: '0-1', name: 'childtask2', chat: [], inputs: [{name: 'Input1'},{name: 'Input2'},]},
+      {id: '0-2', name: 'childtask3', chat: [], inputs: [{name: 'Input1'},{name: 'Input2'},]}
     ]},
     {id: '1', name: 'task2', chat: [
       {username: 'ana', content: 'How dare you'},
       {username: 'bob', content: 'I am doing good'},
     ], children: [
-      {id: '1-0', name: 'childtask1', chat: [], children: []},
-      {id: '1-1', name: 'childtask2', chat: [], children: []},
-      {id: '1-2', name: 'childtask3', chat: [], children: []}
+      {id: '1-0', name: 'childtask1', chat: []},
+      {id: '1-1', name: 'childtask2', chat: []},
+      {id: '1-2', name: 'childtask3', chat: []}
     ]},
     {id: '2', name: 'task3', chat: [
       {username: 'ana', content: 'How dare you'},
       {username: 'bob', content: 'Fine thank you'},
     ], children: [
-      {id: '2-0', name: 'childtask1', chat: [], children: []},
-      {id: '2-1', name: 'childtask2', chat: [], children: []},
-      {id: '2-2', name: 'childtask3', chat: [], children: []}
+      {id: '2-0', name: 'childtask1', chat: []},
+      {id: '2-1', name: 'childtask2', chat: []},
+      {id: '2-2', name: 'childtask3', chat: []}
     ]}
   ]
-  let selected_task
+  const name = 'task_messenger'
   let shift_status = true
   let users = opts.users.filter(username => username!==opts.username)
-  let chat_id
+  const username = opts.username
+  let chat
+  let textmode = "msg"
   // ----------------------------------------
   // PROTOCOL
   // ----------------------------------------
-  const on = { 
-    'on_create_task': on_create_task,
-    'on_post_msg': on_post_msg
+  const on = {
+    'on_post_msg': on_post_msg,
+    'send': send
   }
   const channel_up = use_protocol('up')({ protocol, state, on })
   // ----------------------------------------
@@ -67,47 +71,77 @@ async function task_messenger (opts, protocol) {
       ${opts.username}
       </header>
       <div class="container">
-        <div class="crud">
-          <button class="btn create">
-            Create
-          </button>
-          <button class="btn delete">
-            Delete
-          </button>
-          <button class="btn rename">
-            Rename
-          </button>
-          <button class="btn open">
-            Open
-          </button>
-        </div>
-        <div class="task_tree">
-        </div>
         <div class="chat">
           <div class="history">
           </div>
         </div>
-        <textarea></textarea>
+        <div class="crud">
+          <div class="btn_wrapper">
+            <div class="popup">
+              <div class="noblur"> Input </div>
+              <div class="noblur"> Output </div>
+            </div>
+            <button class="add noblur">
+              add
+            </button>
+          </div>
+          <button class="drop noblur">
+            drop
+          </button>
+          <button class="edit noblur">
+            edit
+          </button>
+          <button class="connect noblur">
+            connect
+          </button>
+          <div class="btn_wrapper">
+            <div class="popup">
+              <div class="noblur"> Input </div>
+              <div class="noblur"> Output </div>
+            </div>
+            <button class="join noblur">
+              join
+            </button>
+          </div>
+        </div>
+        <textarea placeholder="Join or connect to a channel" disabled></textarea>
       </div>
     </div>
   `
   // ----------------------------------------
-  const btn_create = shadow.querySelector('.create')
-  const btn_delete = shadow.querySelector('.delete')
-  const btn_rename = shadow.querySelector('.rename')
-  const btn_open = shadow.querySelector('.open')
-  const task_tree = shadow.querySelector('.task_tree')
+  const container = shadow.querySelector('.container')
+  const btn_add = shadow.querySelector('.add')
+  const btn_drop = shadow.querySelector('.drop')
+  const btn_edit = shadow.querySelector('.edit')
+  const btn_connect = shadow.querySelector('.connect')
+  const btn_join = shadow.querySelector('.join')
   const textarea = shadow.querySelector('textarea')
   const history = shadow.querySelector('.history')
+  const popup = shadow.querySelector('.popup')
   // ----------------------------------------
-  btn_create.onclick = handle_create
-  btn_open.onclick = handle_open
+  btn_add.onclick = () => popup.classList.add('show')
+  btn_connect.onclick = handle_connect
+  btn_join.onclick = handle_join
   textarea.onkeyup = handle_keyup
   textarea.onkeydown = handle_keydown
+  for (const child of popup.children){
+    child.onclick = handle_add
+  }
+  // ----------------------------------------
+  // ELEMENTS
+  // ----------------------------------------
+  {//task explorer
+    const on = {
+      send,
+      set_chat
+    }
+    const protocol = use_protocol('task_explorer')({ state, on })
+    const element = await task_explorer(opts = { json_data, users }, protocol)
+    container.prepend(element)
+  }
   // ----------------------------------------
   // INIT
   // ----------------------------------------
-  fill_task_tree()
   return el
 
   async function handle_keydown (e) {
@@ -115,146 +149,47 @@ async function task_messenger (opts, protocol) {
       switch (e.key){
         case 'Enter':
           e.preventDefault()
-          post_msg()
+          if(textmode === "msg")
+            post_msg()
+          else
+            join()
           break
         case 'Shift':
           shift_status = false
       }
   }
-  async function handle_create () {
-    const input = document.createElement('input')
-    let tree_container, task_id
-    if(selected_task){
-      tree_container = selected_task.firstElementChild.nextElementSibling
-      task_id = selected_task.id
-    }
-    else{
-      tree_container = task_tree
-      task_id = ''
-    }
-    tree_container.prepend(input)
-    input.onkeydown = async (event) => {
-      if (event.key === 'Enter') {
-        tree_container.firstElementChild.remove()
-        tree_container.prepend(await new_task(input.value, task_id))
-        channel_up.send({
-          head: [id, channel_up.send.id, channel_up.mid++],
-          refs: {to:users, type: 'on_create_task'},
-          type: 'pass_through',
-          data: {value: input.value, id: task_id}
-        })
-      }
-    }
-    input.focus()
-  }
-  async function on_create_task ({ data }) {
-    let tree_container
-    if(data.id)
-      tree_container = shadow.querySelector('#' + data.id).firstElementChild.nextElementSibling
-    else
-      tree_container = task_tree
-    tree_container.prepend(await new_task(data.value, data.id))
-
-  }
-  async function handle_open () {
-    history.innerHTML = ''
-    const {task} = await find_task(selected_task.id)
-    task.chat.forEach(msg => {
-      const element = document.createElement('div')
-      element.classList.add('msg')
-      msg.username === opts.username && element.classList.add('right')
-      element.innerHTML = `
-        <div class='username'>
-          ${msg.username}
-        </div>
-        ${msg.content}`
-      history.append(element)
-    })
-    chat_id = selected_task.id
-  }
-  async function find_task (id) {
-    let tree = json_data
-    let task, new_id
-    id = id.slice(1)
-    id && id.split('-').forEach(i => {
-      task = tree[Number(i)]
-      tree = task.children
-    })
-    if(id.length > 1){
-      new_id = id + '-' + tree.length
-    }
-    else
-      new_id = tree.length
-    return {new_id, task, tree}
-  }
-  async function new_task (name, id) {
-    const element = document.createElement('div')
-    element.classList.add('task')
-    element.tabIndex = '0'
-    element.innerHTML = `
-      <div class="task_name">
-        ${name}
-      </div>
-      <div class="children">
-      </div>
-    `
-
-    const {tree, new_id} = await find_task(id)
-    tree.push({id: ''+new_id, name, chat: [], children: []})
-    element.id = 'a'+new_id
-
-    const task_name = element.querySelector('.task_name')
-    task_name.onclick = () => {
-      element.classList.toggle('show')
-      selected_task = element
-      selected_task.focus()
-      selected_task.addEventListener('blur', e => {
-        if(e.relatedTarget && e.relatedTarget.classList.contains('btn'))
-          return
-        selected_task = undefined
-      })
-    }
+  async function handle_add (e) {
+    popup.classList.remove('show')
     
-    return element
+    const channel = state.net[state.aka.task_explorer]
+    channel.send({
+      head: [id, channel.send.id, channel.mid++],
+      type: 'handle_add',
+      data: e.target.innerHTML
+    })
   }
-  async function fill_task_tree () {
-    task_tree.innerHTML = ''
-    task_tree.append(...json_data.map(make_task))
-  }
-  function make_task (data) {
-    const element = document.createElement('div')
-    element.classList.add('task')
-    element.tabIndex = '0'
-    element.id = 'a'+data.id
-    element.innerHTML = `
-      <div class="task_name">
-        ${data.name}
-      </div>
-      <div class="children">
-      </div>
-    `
-    const task_name = element.querySelector('.task_name')
-    task_name.onclick = () => {
-      element.classList.toggle('show')
-      selected_task = element
-      selected_task.focus()
-      selected_task.addEventListener('blur', e => {
-        if(e.relatedTarget && e.relatedTarget.classList.contains('btn'))
-          return
-        selected_task = undefined
-      })
-    }
-    
-    const children = element.querySelector('.children')
-    children.append(...data.children.map(make_task))
-    return element
+  async function handle_connect () {
+    const channel = state.net[state.aka.task_explorer]
+    channel.send({
+      head: [id, channel.send.id, channel.mid++],
+      type: 'get_chat',
+    })
+    textarea.disabled = false
+    textarea.placeholder = "Type a message"
   }
   async function handle_keyup (e) {
     e.target.style.height = "1px";
-    e.target.style.height = (9+e.target.scrollHeight)+"px";
+    e.target.style.height = (15+e.target.scrollHeight)+"px";
     if(e.key === 'Shift')
       shift_status = true
     
+  }
+  async function handle_join () {
+    textarea.disabled = false
+    textarea.placeholder = "Enter a channel id"
+  }
+  async function join () {
+
   }
   async function post_msg () {
     const element = document.createElement('div')
@@ -263,36 +198,75 @@ async function task_messenger (opts, protocol) {
     textarea.value = ''
     element.innerHTML = `
         <div class='username'>
-          ${opts.username}
+          ${username}
         </div>
         ${content}`
     history.append(element)
 
-    const {task} = await find_task(chat_id)
-    task.chat.push(content)
-
+    const channel = state.net[state.aka.task_explorer]
+    channel.send({
+      head: [id, channel.send.id, channel.mid++],
+      type: 'post_msg',
+      data: {content, username, chat_id: chat.id}
+    })
     channel_up.send({
       head: [id, channel_up.send.id, channel_up.mid++],
-      refs: {from: opts.username, to: users, type: 'on_post_msg'},
-      type: 'pass_through',
-      data: {value: content, id: chat_id}
+      type: 'send',
+      data: {from: username, users, to: 'task_messenger', type: 'on_post_msg', data_re: {content: content, chat_id: chat.id}}
     })
 
     history.scrollTop = history.scrollHeight
   }
-  async function on_post_msg ({ data, refs }) {
-    const {task} = await find_task(data.id)
-    task.chat.push({username: refs.from, content:data.value})
-    if(data.id === chat_id){
+  async function on_post_msg (data) {
+    const { from, data_re } = data
+    const { content, chat_id } = data_re
+    const channel = state.net[state.aka.task_explorer]
+    channel.send({
+      head: [id, channel.send.id, channel.mid++],
+      type: 'post_msg',
+      data: {content, username: from, chat_id}
+    })
+    if(chat && chat_id === chat.id){
       const element = document.createElement('div')
       element.classList.add('msg')
       element.innerHTML = `
         <div class='username'>
-          ${refs.from}
+          ${from}
         </div>
-        ${data.value}`
+        ${content}`
       history.append(element)
     }
+    history.scrollTop = history.scrollHeight
+  }
+  async function send ({ data }) {
+    const {to, route} = data
+    if(to === name){
+      on[data.type](data)
+      return
+    }
+    const channel = state.net[state.aka[route[0]]]
+    data.route = data.route.slice(1)
+    channel.send({
+      head: [id, channel.send.id, channel.mid++],
+      type: 'send',
+      data
+    })
+  }
+  async function set_chat ({ data }){
+    chat = {data: data.chat_data, id: data.chat_id}
+    history.innerHTML = ''
+    chat.data.forEach(msg => {
+      const element = document.createElement('div')
+      element.classList.add('msg')
+      msg.username === username && element.classList.add('right')
+      element.innerHTML = `
+        <div class='username'>
+          ${msg.username}
+        </div>
+        ${msg.content}`
+      history.append(element)
+    })
+
   }
 }
 function get_theme () {
@@ -307,50 +281,24 @@ function get_theme () {
       align-items: center;
       height: 100vh;
       width: 100%;
-      background-color: gray;
-      border: 1px solid black;
+      color: white;
+      background-color: black;
+      border: 1px solid gray;
     }
     .container{
       display: flex;
       flex-direction: column;
       height: 100%;
       width: 100%;
-      border: 1px solid black;
-    }
-    .task_tree{
-      width: 100%;
-      padding-left: 5px;
-      margin-left: 2px;
-      border-left: 1px solid black;
-    }
-    .task{
-      cursor: pointer;
-      padding: 3px 0;
-    }
-    .task .task_name::before{
-      content: '+';
-    }
-    .task.show > .task_name::before{
-      content: '- ';
-    }
-    .task > .children{
-      display: none;
-      padding-left: 5px;
-      margin-left: 2px;
-      border-left: 1px solid black;
-    }
-    .task:focus{
-      background-color: #aaa;
-    }
-    .task.show > .children{
-      display: block;
+      border: 1px solid gray;
     }
     .crud{
       display: flex;
       gap: 10px;
       justify-content: space-around;
+      align-items: center;
       padding: 10px;
-      border: 1px solid black;
+      border: 1px solid gray;
     }
     .chat{
       position: relative;
@@ -358,7 +306,8 @@ function get_theme () {
       flex-direction: column;
       width: 100%;
       height: 100%;
-      border-top: 1px solid black;
+      border-top: 1px solid gray;
+      background-color: #212121;
     }
     .chat > .history{
       display: flex;
@@ -391,11 +340,27 @@ function get_theme () {
     }
     textarea{
       margin: 40px 20px;
-      height: 44px;
+      height: 50px;
+      min-height: 40px;
       padding: 10px;
     }
     textarea::-webkit-scrollbar{
       display: none;
+    }
+    .btn_wrapper{
+      position: relative;
+    }
+    .btn_wrapper .popup{
+      display: none;
+      position: absolute;
+      bottom: 100%;
+      background: black;
+      border: 1px solid gray;
+      cursor: pointer;
+      padding: 5px;
+    }
+    .btn_wrapper .popup.show{
+      display: block;
     }
   `
 }
