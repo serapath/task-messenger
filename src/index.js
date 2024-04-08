@@ -19,32 +19,6 @@ async function task_messenger (opts, protocol) {
   const id = `${ID}:${count++}` // assigns their own name
   const status = {}
   const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {} } // all state of component instance
-  const json_data = [
-    {id: '0', name: 'roadmapping', chat: [
-      {username: 'ana', content: 'How are you'},
-      {username: 'bob', content: 'I am doing good'},
-    ], children: [
-      {id: '0-0', name: 'create task-messenger', chat: [], inputs: [{name: 'discord-msg'}], outputs: [{name: 'task-messenger.js'}]},
-      {id: '0-1', name: 'childtask2', chat: [], inputs: [{name: 'Input1'},{name: 'Input2'},]},
-      {id: '0-2', name: 'childtask3', chat: [], inputs: [{name: 'Input1'},{name: 'Input2'},]}
-    ]},
-    {id: '1', name: 'task2', chat: [
-      {username: 'ana', content: 'How dare you'},
-      {username: 'bob', content: 'I am doing good'},
-    ], children: [
-      {id: '1-0', name: 'childtask1', chat: []},
-      {id: '1-1', name: 'childtask2', chat: []},
-      {id: '1-2', name: 'childtask3', chat: []}
-    ]},
-    {id: '2', name: 'task3', chat: [
-      {username: 'ana', content: 'How dare you'},
-      {username: 'bob', content: 'Fine thank you'},
-    ], children: [
-      {id: '2-0', name: 'childtask1', chat: []},
-      {id: '2-1', name: 'childtask2', chat: []},
-      {id: '2-2', name: 'childtask3', chat: []}
-    ]}
-  ]
   const name = 'task_messenger'
   let shift_status = true
   let users = opts.users.filter(username => username!==opts.username)
@@ -80,6 +54,7 @@ async function task_messenger (opts, protocol) {
             <div class="popup">
               <div class="noblur"> Input </div>
               <div class="noblur"> Output </div>
+              <div class="noblur"> Task </div>
             </div>
             <button class="add noblur">
               add
@@ -99,12 +74,12 @@ async function task_messenger (opts, protocol) {
               <div class="noblur"> Input </div>
               <div class="noblur"> Output </div>
             </div>
-            <button class="join noblur">
-              join
+            <button class="invite noblur">
+              invite
             </button>
           </div>
         </div>
-        <textarea placeholder="Join or connect to a channel" disabled></textarea>
+        <textarea class="noblur" placeholder="Connect to a channel" disabled></textarea>
       </div>
     </div>
   `
@@ -114,14 +89,14 @@ async function task_messenger (opts, protocol) {
   const btn_drop = shadow.querySelector('.drop')
   const btn_edit = shadow.querySelector('.edit')
   const btn_connect = shadow.querySelector('.connect')
-  const btn_join = shadow.querySelector('.join')
+  const btn_invite = shadow.querySelector('.invite')
   const textarea = shadow.querySelector('textarea')
   const history = shadow.querySelector('.history')
   const popup = shadow.querySelector('.popup')
   // ----------------------------------------
   btn_add.onclick = () => popup.classList.add('show')
   btn_connect.onclick = handle_connect
-  btn_join.onclick = handle_join
+  btn_invite.onclick = handle_invite
   textarea.onkeyup = handle_keyup
   textarea.onkeydown = handle_keydown
   for (const child of popup.children){
@@ -136,7 +111,7 @@ async function task_messenger (opts, protocol) {
       set_chat
     }
     const protocol = use_protocol('task_explorer')({ state, on })
-    const element = await task_explorer(opts = { json_data, users }, protocol)
+    const element = await task_explorer(opts = { users, host: username }, protocol)
     container.prepend(element)
   }
   // ----------------------------------------
@@ -152,7 +127,7 @@ async function task_messenger (opts, protocol) {
           if(textmode === "msg")
             post_msg()
           else
-            join()
+            invite()
           break
         case 'Shift':
           shift_status = false
@@ -184,12 +159,18 @@ async function task_messenger (opts, protocol) {
       shift_status = true
     
   }
-  async function handle_join () {
+  async function handle_invite () {
     textarea.disabled = false
-    textarea.placeholder = "Enter a channel id"
+    textarea.placeholder = "Enter a user id"
+    textmode = 'invite'
   }
-  async function join () {
-
+  async function invite () {
+    const channel = state.net[state.aka.task_explorer]
+    channel.send({
+      head: [id, channel.send.id, channel.mid++],
+      type: 'handle_invite',
+      data: textarea.value
+    })
   }
   async function post_msg () {
     const element = document.createElement('div')
