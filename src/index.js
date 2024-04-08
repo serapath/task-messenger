@@ -66,8 +66,8 @@ async function task_messenger (opts, protocol) {
           <button class="edit noblur">
             edit
           </button>
-          <button class="connect noblur">
-            connect
+          <button class="join noblur">
+            join
           </button>
           <div class="btn_wrapper">
             <div class="popup">
@@ -79,7 +79,7 @@ async function task_messenger (opts, protocol) {
             </button>
           </div>
         </div>
-        <textarea class="noblur" placeholder="Connect to a channel" disabled></textarea>
+        <textarea class="noblur" placeholder="join to a channel" disabled></textarea>
       </div>
     </div>
   `
@@ -88,14 +88,14 @@ async function task_messenger (opts, protocol) {
   const btn_add = shadow.querySelector('.add')
   const btn_drop = shadow.querySelector('.drop')
   const btn_edit = shadow.querySelector('.edit')
-  const btn_connect = shadow.querySelector('.connect')
+  const btn_join = shadow.querySelector('.join')
   const btn_invite = shadow.querySelector('.invite')
   const textarea = shadow.querySelector('textarea')
   const history = shadow.querySelector('.history')
   const popup = shadow.querySelector('.popup')
   // ----------------------------------------
   btn_add.onclick = () => popup.classList.add('show')
-  btn_connect.onclick = handle_connect
+  btn_join.onclick = handle_join
   btn_invite.onclick = handle_invite
   textarea.onkeyup = handle_keyup
   textarea.onkeydown = handle_keydown
@@ -143,7 +143,7 @@ async function task_messenger (opts, protocol) {
       data: e.target.innerHTML
     })
   }
-  async function handle_connect () {
+  async function handle_join () {
     const channel = state.net[state.aka.task_explorer]
     channel.send({
       head: [id, channel.send.id, channel.mid++],
@@ -353,7 +353,7 @@ function use_protocol (petname) {
     if (protocol) return handshake(protocol(Object.assign(listen, { id })))
     else return handshake
     // ----------------------------------------
-    // @TODO: how to disconnect channel
+    // @TODO: how to disjoin channel
     // ----------------------------------------
     function handshake (send) {
       state.aka[petname] = send.id
