@@ -750,7 +750,8 @@ module.exports=[
           3,
           4
       ],
-      "parent": 0
+      "parent": 0,
+      "chat": []
   },
   {
       "id": 2,
@@ -764,7 +765,8 @@ module.exports=[
           5,
           6
       ],
-      "parent": 0
+      "parent": 0,
+      "chat": []
   },
   {
       "id": 3,
@@ -781,7 +783,8 @@ module.exports=[
           8,
           10
       ],
-      "parent": 1
+      "parent": 1,
+      "chat": []
   },
   {
       "id": 4,
@@ -795,7 +798,8 @@ module.exports=[
           8,
           10
       ],
-      "parent": 1
+      "parent": 1,
+      "chat": []
   },
   {
       "id": 5,
@@ -818,7 +822,8 @@ module.exports=[
       "tasks": [
           15
       ],
-      "parent": 2
+      "parent": 2,
+      "chat": []
   },
   {
       "id": 6,
@@ -828,7 +833,8 @@ module.exports=[
       ],
       "name": "implement searchbar",
       "type": "task",
-      "parent": 2
+      "parent": 2,
+      "chat": []
   },
   {
       "id": 7,
@@ -842,7 +848,8 @@ module.exports=[
           5,
           6
       ],
-      "parent": 3
+      "parent": 3,
+      "chat": []
   },
   {
       "id": 8,
@@ -855,7 +862,8 @@ module.exports=[
       "outputs": [
           9
       ],
-      "parent": 3
+      "parent": 3,
+      "chat": []
   },
   {
       "id": 9,
@@ -869,7 +877,8 @@ module.exports=[
           5,
           6
       ],
-      "parent": 8
+      "parent": 8,
+      "chat": []
   },
   {
       "id": 10,
@@ -882,7 +891,8 @@ module.exports=[
       "outputs": [
           11
       ],
-      "parent": 3
+      "parent": 3,
+      "chat": []
   },
   {
       "id": 11,
@@ -896,7 +906,8 @@ module.exports=[
           5,
           6
       ],
-      "parent": 10
+      "parent": 10,
+      "chat": []
   },
   {
       "id": 12,
@@ -906,7 +917,8 @@ module.exports=[
       ],
       "name": "button.js",
       "type": "io",
-      "parent": 5
+      "parent": 5,
+      "chat": []
   },
   {
       "id": 13,
@@ -916,7 +928,8 @@ module.exports=[
       ],
       "name": "button.css",
       "type": "io",
-      "parent": 5
+      "parent": 5,
+      "chat": []
   },
   {
       "id": 14,
@@ -926,7 +939,8 @@ module.exports=[
       ],
       "name": "button.html",
       "type": "io",
-      "parent": 5
+      "parent": 5,
+      "chat": []
   },
   {
       "id": 15,
@@ -936,7 +950,8 @@ module.exports=[
       ],
       "name": "write button js, css, and html",
       "type": "task",
-      "parent": 5
+      "parent": 5,
+      "chat": []
   }
 ]
 },{}],5:[function(require,module,exports){
@@ -1129,13 +1144,14 @@ function task_explorer (opts, protocol) {
       temp++
     }
   }
-  async function add_node_data (name, type, parent_id){
+  async function add_node_data (name, type, parent_id, users){
     const node_id = json_data.length
-    json_data.push({ id: node_id, name, type: code_words[type] })
+    json_data.push({ id: node_id, name, type: code_words[type], chat: [], users })
     if(parent_id){
-      const children = json_data[parent_id][type]
+      console.error(json_data[parent_id])
       !chat_task && json_data[parent_id].chat.push({username: 'system', content: 'Added '+name})
-      children ? children.push(node_id) : json_data[parent_id][type] = [node_id]
+      const sub_nodes = json_data[parent_id][type]
+      sub_nodes ? sub_nodes.push(node_id) : json_data[parent_id][type] = [node_id]
     }
     else{
       json_data[node_id].root = true
@@ -1145,7 +1161,7 @@ function task_explorer (opts, protocol) {
   async function on_add_node (data) {
     const node = data.id ? shadow.querySelector('#a' + data.id + ' > .'+data.type) : tree_el
     node.children.length > 0 && node.prepend(add_node_el({ name: data.name, id: json_data.length, type: code_words[data.type] }))
-    add_node_data(data.name, data.type, data.id)
+    add_node_data(data.name, data.type, data.id, data.users.push(host))
   }
   async function handle_export () {
     const data = await traverse( selected_task.id.slice(1) )
@@ -1177,12 +1193,13 @@ function task_explorer (opts, protocol) {
       if (event.key === 'Enter') {
         node.firstElementChild.remove()
         node.prepend(add_node_el({ name: input.value, id: json_data.length, type: code_words[data] }))
-        add_node_data(input.value, data, task_id)
+        const users = task_id ? json_data[task_id].users : [host]
+        add_node_data(input.value, data, task_id, users)
         if(task_id && json_data[task_id].users.length > 1)
           channel_up.send({
             head: [id, channel_up.send.id, channel_up.mid++],
             type: 'send',
-            data: {to: 'task_explorer', route: ['up', 'task_explorer'], users: json_data[task_id].users.filter(user => user !== host), type: 'on_add_node', data: {name: input.value, id: task_id, type: data} }
+            data: {to: 'task_explorer', route: ['up', 'task_explorer'], users: json_data[task_id].users.filter(user => user !== host), type: 'on_add_node', data: {name: input.value, id: task_id, type: data, users} }
           })
         if(chat_task && task_id === chat_task.id.slice(1))
           channel_up.send({
@@ -1224,10 +1241,12 @@ function task_explorer (opts, protocol) {
   }
   async function post_msg ({ data }) {
     const node = json_data[Number(data.chat_id)]
+    console.error(node)
     node.chat.push({ username: data.username, content: data.content })
   }
   async function handle_invite ({ sender, task_id }) {
     const node = json_data[Number(task_id)]
+    console.error(task_id, json_data)
     node.users.push(sender)
     channel_up.send({
       head: [id, channel_up.send.id, channel_up.mid++],
