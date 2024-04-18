@@ -51,52 +51,41 @@ async function task_messenger (opts, protocol) {
         </div>
         <div class="crud">
           <div class="btn_wrapper">
-            <div class="popup">
-              <div class="noblur"> Input </div>
-              <div class="noblur"> Output </div>
-              <div class="noblur"> Task </div>
+            <div class="popup" tabindex='0'>
+              <div class="noblur">📥 Input </div>
+              <div class="noblur">📤 Output </div>
+              <div class="noblur">📭 Task </div>
             </div>
             <button class="add noblur">
-              add
+              +
             </button>
           </div>
-          <button class="drop noblur">
-            drop
-          </button>
-          <button class="edit noblur">
-            edit
-          </button>
           <button class="join noblur">
             join
           </button>
-          <div class="btn_wrapper">
-            <div class="popup">
-              <div class="noblur"> Input </div>
-              <div class="noblur"> Output </div>
-            </div>
-            <button class="invite noblur">
-              invite
-            </button>
-          </div>
+          <button class="export noblur">
+            export
+          </button>
+          <textarea class="noblur" placeholder="join a channel" disabled></textarea>
+          <div class="send">></div>
         </div>
-        <textarea class="noblur" placeholder="join to a channel" disabled></textarea>
       </div>
     </div>
   `
   // ----------------------------------------
   const container = shadow.querySelector('.container')
   const btn_add = shadow.querySelector('.add')
-  const btn_drop = shadow.querySelector('.drop')
-  const btn_edit = shadow.querySelector('.edit')
   const btn_join = shadow.querySelector('.join')
-  const btn_invite = shadow.querySelector('.invite')
+  const btn_export = shadow.querySelector('.export')
+  const btn_send = shadow.querySelector('.send')
   const textarea = shadow.querySelector('textarea')
   const history = shadow.querySelector('.history')
   const popup = shadow.querySelector('.popup')
   // ----------------------------------------
-  btn_add.onclick = () => popup.classList.add('show')
+  btn_add.onclick = handle_popup
   btn_join.onclick = handle_join
-  btn_invite.onclick = handle_invite
+  btn_export.onclick = handle_export
+  btn_send.onclick = handle_send
   textarea.onkeyup = handle_keyup
   textarea.onkeydown = handle_keydown
   for (const child of popup.children){
@@ -108,10 +97,11 @@ async function task_messenger (opts, protocol) {
   {//task explorer
     const on = {
       send,
-      set_chat
+      open_chat,
+      post_msg,
     }
     const protocol = use_protocol('task_explorer')({ state, on })
-    const element = await task_explorer(opts = { users, host: username }, protocol)
+    const element = task_explorer(opts = { users, host: username }, protocol)
     container.prepend(element)
   }
   // ----------------------------------------
@@ -119,15 +109,33 @@ async function task_messenger (opts, protocol) {
   // ----------------------------------------
   return el
 
+  async function handle_export () {
+    const channel = state.net[state.aka.task_explorer]
+    channel.send({
+      head: [id, channel.send.id, channel.mid++],
+      type: 'handle_export',
+    })
+  }
+  async function handle_popup () {
+    popup.focus()
+  }
+  async function handle_send () {
+    if(textarea.disabled)
+      return
+    if(textmode === "msg")
+      post_msg()
+    else
+      join()
+  }
   async function handle_keydown (e) {
     if(shift_status)
       switch (e.key){
         case 'Enter':
           e.preventDefault()
           if(textmode === "msg")
-            post_msg()
+            post_msg({data: {content: textarea.value.replaceAll('\n', '<br>'), username}})
           else
-            invite()
+            join()
           break
         case 'Shift':
           shift_status = false
@@ -143,45 +151,41 @@ async function task_messenger (opts, protocol) {
       data: e.target.innerHTML
     })
   }
-  async function handle_join () {
-    const channel = state.net[state.aka.task_explorer]
-    channel.send({
-      head: [id, channel.send.id, channel.mid++],
-      type: 'get_chat',
-    })
-    textarea.disabled = false
-    textarea.placeholder = "Type a message"
-  }
   async function handle_keyup (e) {
     e.target.style.height = "1px";
-    e.target.style.height = (15+e.target.scrollHeight)+"px";
+    e.target.style.height = (2+e.target.scrollHeight)+"px";
     if(e.key === 'Shift')
       shift_status = true
     
   }
-  async function handle_invite () {
+  async function handle_join () {
     textarea.disabled = false
-    textarea.placeholder = "Enter a user id"
-    textmode = 'invite'
+    textarea.placeholder = "Enter a invite code"
+    textmode = 'join'
   }
-  async function invite () {
-    const channel = state.net[state.aka.task_explorer]
-    channel.send({
-      head: [id, channel.send.id, channel.mid++],
-      type: 'handle_invite',
-      data: textarea.value
+  async function join () {
+    const [user, task_id] = textarea.value.split('-')
+    channel_up.send({
+      head: [id, channel_up.send.id, channel_up.mid++],
+      type: 'send',
+      data: {to: 'task_explorer', route: ['task_explorer'], users: [user], type: 'handle_invite', data: {sender: opts.host, task_id}}
     })
   }
-  async function post_msg () {
+  async function post_msg ({ data }) {
+    const {content, username} = data
     const element = document.createElement('div')
     element.classList.add('msg', 'right')
-    const content = textarea.value.replaceAll('\n', '<br>')
     textarea.value = ''
-    element.innerHTML = `
-        <div class='username'>
-          ${username}
-        </div>
-        ${content}`
+    if(username === 'system'){
+      element.classList.add('system')
+      element.innerHTML = content
+    }
+    else
+      element.innerHTML = `
+          <div class='username'>
+            ${username}
+          </div>
+          ${content}`
     history.append(element)
 
     const channel = state.net[state.aka.task_explorer]
@@ -210,12 +214,17 @@ async function task_messenger (opts, protocol) {
     if(chat && chat_id === chat.id){
       const element = document.createElement('div')
       element.classList.add('msg')
-      element.innerHTML = `
-        <div class='username'>
-          ${from}
-        </div>
-        ${content}`
-      history.append(element)
+      if(from === 'system'){
+        element.classList.add('system')
+        element.innerHTML = content
+      }
+      else
+        element.innerHTML = `
+            <div class='username'>
+              ${from}
+            </div>
+            ${content}`
+      history.append(element)  
     }
     history.scrollTop = history.scrollHeight
   }
@@ -233,21 +242,28 @@ async function task_messenger (opts, protocol) {
       data
     })
   }
-  async function set_chat ({ data }){
+  async function open_chat ({ data }){
     chat = {data: data.chat_data, id: data.chat_id}
     history.innerHTML = ''
     chat.data.forEach(msg => {
       const element = document.createElement('div')
       element.classList.add('msg')
-      msg.username === username && element.classList.add('right')
-      element.innerHTML = `
-        <div class='username'>
-          ${msg.username}
-        </div>
-        ${msg.content}`
+      if(msg.username === 'system'){
+        element.classList.add('system')
+        element.innerHTML = msg.content
+      }
+      else{
+        msg.username === username && element.classList.add('right')
+        element.innerHTML = `
+          <div class='username'>
+            ${msg.username}
+          </div>
+          ${msg.content}`
+      }
       history.append(element)
     })
-
+    textarea.disabled = false
+    textarea.placeholder = "Type a message"
   }
 }
 function get_theme () {
@@ -276,7 +292,7 @@ function get_theme () {
     .crud{
       display: flex;
       gap: 10px;
-      justify-content: space-around;
+      justify-content: space-between;
       align-items: center;
       padding: 10px;
       border: 1px solid gray;
@@ -311,6 +327,10 @@ function get_theme () {
     .chat .msg.right{
       margin-left: auto;
     }
+    .chat .msg.system{
+      margin: 0 auto;
+      background: none;
+    }
     .chat .msg .username{
       position: absolute;
       top: -16px;
@@ -321,9 +341,10 @@ function get_theme () {
     }
     textarea{
       margin: 40px 20px;
-      height: 50px;
+      height: 40px;
       min-height: 40px;
       padding: 10px;
+      width: 100%;
     }
     textarea::-webkit-scrollbar{
       display: none;
@@ -332,16 +353,28 @@ function get_theme () {
       position: relative;
     }
     .btn_wrapper .popup{
-      display: none;
+      height: 0;
       position: absolute;
       bottom: 100%;
       background: black;
-      border: 1px solid gray;
       cursor: pointer;
-      padding: 5px;
+      white-space: nowrap;
+      overflow: hidden;
     }
-    .btn_wrapper .popup.show{
-      display: block;
+    .btn_wrapper .popup:focus{
+      height: auto;
+      padding: 5px;
+      border: 1px solid gray;
+    }
+    .send{
+      padding: 7px 10px;
+      background-color: black;
+      position: absolute;
+      right: 40px;
+      width: 30px;
+      height: 30px;
+      cursor: pointer;
+      border-radius: 4px;
     }
   `
 }

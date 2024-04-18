@@ -353,52 +353,41 @@ async function task_messenger (opts, protocol) {
         </div>
         <div class="crud">
           <div class="btn_wrapper">
-            <div class="popup">
-              <div class="noblur"> Input </div>
-              <div class="noblur"> Output </div>
-              <div class="noblur"> Task </div>
+            <div class="popup" tabindex='0'>
+              <div class="noblur">📥 Input </div>
+              <div class="noblur">📤 Output </div>
+              <div class="noblur">📭 Task </div>
             </div>
             <button class="add noblur">
-              add
+              +
             </button>
           </div>
-          <button class="drop noblur">
-            drop
-          </button>
-          <button class="edit noblur">
-            edit
-          </button>
           <button class="join noblur">
             join
           </button>
-          <div class="btn_wrapper">
-            <div class="popup">
-              <div class="noblur"> Input </div>
-              <div class="noblur"> Output </div>
-            </div>
-            <button class="invite noblur">
-              invite
-            </button>
-          </div>
+          <button class="export noblur">
+            export
+          </button>
+          <textarea class="noblur" placeholder="join a channel" disabled></textarea>
+          <div class="send">></div>
         </div>
-        <textarea class="noblur" placeholder="join to a channel" disabled></textarea>
       </div>
     </div>
   `
   // ----------------------------------------
   const container = shadow.querySelector('.container')
   const btn_add = shadow.querySelector('.add')
-  const btn_drop = shadow.querySelector('.drop')
-  const btn_edit = shadow.querySelector('.edit')
   const btn_join = shadow.querySelector('.join')
-  const btn_invite = shadow.querySelector('.invite')
+  const btn_export = shadow.querySelector('.export')
+  const btn_send = shadow.querySelector('.send')
   const textarea = shadow.querySelector('textarea')
   const history = shadow.querySelector('.history')
   const popup = shadow.querySelector('.popup')
   // ----------------------------------------
-  btn_add.onclick = () => popup.classList.add('show')
+  btn_add.onclick = handle_popup
   btn_join.onclick = handle_join
-  btn_invite.onclick = handle_invite
+  btn_export.onclick = handle_export
+  btn_send.onclick = handle_send
   textarea.onkeyup = handle_keyup
   textarea.onkeydown = handle_keydown
   for (const child of popup.children){
@@ -410,10 +399,11 @@ async function task_messenger (opts, protocol) {
   {//task explorer
     const on = {
       send,
-      set_chat
+      open_chat,
+      post_msg,
     }
     const protocol = use_protocol('task_explorer')({ state, on })
-    const element = await task_explorer(opts = { users, host: username }, protocol)
+    const element = task_explorer(opts = { users, host: username }, protocol)
     container.prepend(element)
   }
   // ----------------------------------------
@@ -421,15 +411,33 @@ async function task_messenger (opts, protocol) {
   // ----------------------------------------
   return el
 
+  async function handle_export () {
+    const channel = state.net[state.aka.task_explorer]
+    channel.send({
+      head: [id, channel.send.id, channel.mid++],
+      type: 'handle_export',
+    })
+  }
+  async function handle_popup () {
+    popup.focus()
+  }
+  async function handle_send () {
+    if(textarea.disabled)
+      return
+    if(textmode === "msg")
+      post_msg()
+    else
+      join()
+  }
   async function handle_keydown (e) {
     if(shift_status)
       switch (e.key){
         case 'Enter':
           e.preventDefault()
           if(textmode === "msg")
-            post_msg()
+            post_msg({data: {content: textarea.value.replaceAll('\n', '<br>'), username}})
           else
-            invite()
+            join()
           break
         case 'Shift':
           shift_status = false
@@ -445,45 +453,41 @@ async function task_messenger (opts, protocol) {
       data: e.target.innerHTML
     })
   }
-  async function handle_join () {
-    const channel = state.net[state.aka.task_explorer]
-    channel.send({
-      head: [id, channel.send.id, channel.mid++],
-      type: 'get_chat',
-    })
-    textarea.disabled = false
-    textarea.placeholder = "Type a message"
-  }
   async function handle_keyup (e) {
     e.target.style.height = "1px";
-    e.target.style.height = (15+e.target.scrollHeight)+"px";
+    e.target.style.height = (2+e.target.scrollHeight)+"px";
     if(e.key === 'Shift')
       shift_status = true
     
   }
-  async function handle_invite () {
+  async function handle_join () {
     textarea.disabled = false
-    textarea.placeholder = "Enter a user id"
-    textmode = 'invite'
+    textarea.placeholder = "Enter a invite code"
+    textmode = 'join'
   }
-  async function invite () {
-    const channel = state.net[state.aka.task_explorer]
-    channel.send({
-      head: [id, channel.send.id, channel.mid++],
-      type: 'handle_invite',
-      data: textarea.value
+  async function join () {
+    const [user, task_id] = textarea.value.split('-')
+    channel_up.send({
+      head: [id, channel_up.send.id, channel_up.mid++],
+      type: 'send',
+      data: {to: 'task_explorer', route: ['task_explorer'], users: [user], type: 'handle_invite', data: {sender: opts.host, task_id}}
     })
   }
-  async function post_msg () {
+  async function post_msg ({ data }) {
+    const {content, username} = data
     const element = document.createElement('div')
     element.classList.add('msg', 'right')
-    const content = textarea.value.replaceAll('\n', '<br>')
     textarea.value = ''
-    element.innerHTML = `
-        <div class='username'>
-          ${username}
-        </div>
-        ${content}`
+    if(username === 'system'){
+      element.classList.add('system')
+      element.innerHTML = content
+    }
+    else
+      element.innerHTML = `
+          <div class='username'>
+            ${username}
+          </div>
+          ${content}`
     history.append(element)
 
     const channel = state.net[state.aka.task_explorer]
@@ -512,12 +516,17 @@ async function task_messenger (opts, protocol) {
     if(chat && chat_id === chat.id){
       const element = document.createElement('div')
       element.classList.add('msg')
-      element.innerHTML = `
-        <div class='username'>
-          ${from}
-        </div>
-        ${content}`
-      history.append(element)
+      if(from === 'system'){
+        element.classList.add('system')
+        element.innerHTML = content
+      }
+      else
+        element.innerHTML = `
+            <div class='username'>
+              ${from}
+            </div>
+            ${content}`
+      history.append(element)  
     }
     history.scrollTop = history.scrollHeight
   }
@@ -535,21 +544,28 @@ async function task_messenger (opts, protocol) {
       data
     })
   }
-  async function set_chat ({ data }){
+  async function open_chat ({ data }){
     chat = {data: data.chat_data, id: data.chat_id}
     history.innerHTML = ''
     chat.data.forEach(msg => {
       const element = document.createElement('div')
       element.classList.add('msg')
-      msg.username === username && element.classList.add('right')
-      element.innerHTML = `
-        <div class='username'>
-          ${msg.username}
-        </div>
-        ${msg.content}`
+      if(msg.username === 'system'){
+        element.classList.add('system')
+        element.innerHTML = msg.content
+      }
+      else{
+        msg.username === username && element.classList.add('right')
+        element.innerHTML = `
+          <div class='username'>
+            ${msg.username}
+          </div>
+          ${msg.content}`
+      }
       history.append(element)
     })
-
+    textarea.disabled = false
+    textarea.placeholder = "Type a message"
   }
 }
 function get_theme () {
@@ -578,7 +594,7 @@ function get_theme () {
     .crud{
       display: flex;
       gap: 10px;
-      justify-content: space-around;
+      justify-content: space-between;
       align-items: center;
       padding: 10px;
       border: 1px solid gray;
@@ -613,6 +629,10 @@ function get_theme () {
     .chat .msg.right{
       margin-left: auto;
     }
+    .chat .msg.system{
+      margin: 0 auto;
+      background: none;
+    }
     .chat .msg .username{
       position: absolute;
       top: -16px;
@@ -623,9 +643,10 @@ function get_theme () {
     }
     textarea{
       margin: 40px 20px;
-      height: 50px;
+      height: 40px;
       min-height: 40px;
       padding: 10px;
+      width: 100%;
     }
     textarea::-webkit-scrollbar{
       display: none;
@@ -634,16 +655,28 @@ function get_theme () {
       position: relative;
     }
     .btn_wrapper .popup{
-      display: none;
+      height: 0;
       position: absolute;
       bottom: 100%;
       background: black;
-      border: 1px solid gray;
       cursor: pointer;
-      padding: 5px;
+      white-space: nowrap;
+      overflow: hidden;
     }
-    .btn_wrapper .popup.show{
-      display: block;
+    .btn_wrapper .popup:focus{
+      height: auto;
+      padding: 5px;
+      border: 1px solid gray;
+    }
+    .send{
+      padding: 7px 10px;
+      background-color: black;
+      position: absolute;
+      right: 40px;
+      width: 30px;
+      height: 30px;
+      cursor: pointer;
+      border-radius: 4px;
     }
   `
 }
@@ -675,7 +708,238 @@ function use_protocol (petname) {
 }
 
 }).call(this)}).call(this,require('_process'),"/src/index.js")
-},{"_process":2,"task_explorer":4}],4:[function(require,module,exports){
+},{"_process":2,"task_explorer":5}],4:[function(require,module,exports){
+module.exports=[
+  {
+      "id": 0,
+      "users": [
+          "ana",
+          "bob"
+      ],
+      "name": "roadmap",
+      "type": "task",
+      "root": true,
+      "tasks": [
+          1,
+          2
+      ],
+      "chat": [
+          {
+              "username": "ana",
+              "content": "Hello"
+          },
+          {
+              "username": "bob",
+              "content": "Hello"
+          },
+          {
+              "username": "system",
+              "content": "Added UI/UX design"
+          }
+      ]
+  },
+  {
+      "id": 1,
+      "users": [
+          "ana",
+          "bob"
+      ],
+      "name": "UI/UX design",
+      "type": "task",
+      "tasks": [
+          3,
+          4
+      ],
+      "parent": 0
+  },
+  {
+      "id": 2,
+      "users": [
+          "ana",
+          "bob"
+      ],
+      "name": "implementation",
+      "type": "task",
+      "tasks": [
+          5,
+          6
+      ],
+      "parent": 0
+  },
+  {
+      "id": 3,
+      "users": [
+          "ana",
+          "bob"
+      ],
+      "name": "design button",
+      "type": "task",
+      "outputs": [
+          7
+      ],
+      "tasks": [
+          8,
+          10
+      ],
+      "parent": 1
+  },
+  {
+      "id": 4,
+      "users": [
+          "ana",
+          "bob"
+      ],
+      "name": "design searchbar",
+      "type": "task",
+      "tasks": [
+          8,
+          10
+      ],
+      "parent": 1
+  },
+  {
+      "id": 5,
+      "users": [
+          "ana",
+          "bob"
+      ],
+      "name": "implement button",
+      "type": "task",
+      "inputs": [
+          7,
+          9,
+          11
+      ],
+      "outputs": [
+          12,
+          13,
+          14
+      ],
+      "tasks": [
+          15
+      ],
+      "parent": 2
+  },
+  {
+      "id": 6,
+      "users": [
+          "ana",
+          "bob"
+      ],
+      "name": "implement searchbar",
+      "type": "task",
+      "parent": 2
+  },
+  {
+      "id": 7,
+      "users": [
+          "ana",
+          "bob"
+      ],
+      "name": "button repo",
+      "type": "io",
+      "tasks": [
+          5,
+          6
+      ],
+      "parent": 3
+  },
+  {
+      "id": 8,
+      "users": [
+          "ana",
+          "bob"
+      ],
+      "name": "make button icon",
+      "type": "task",
+      "outputs": [
+          9
+      ],
+      "parent": 3
+  },
+  {
+      "id": 9,
+      "users": [
+          "ana",
+          "bob"
+      ],
+      "name": "button icon.svg",
+      "type": "io",
+      "tasks": [
+          5,
+          6
+      ],
+      "parent": 8
+  },
+  {
+      "id": 10,
+      "users": [
+          "ana",
+          "bob"
+      ],
+      "name": "wireframe button",
+      "type": "task",
+      "outputs": [
+          11
+      ],
+      "parent": 3
+  },
+  {
+      "id": 11,
+      "users": [
+          "ana",
+          "bob"
+      ],
+      "name": "button.fig",
+      "type": "io",
+      "tasks": [
+          5,
+          6
+      ],
+      "parent": 10
+  },
+  {
+      "id": 12,
+      "users": [
+          "ana",
+          "bob"
+      ],
+      "name": "button.js",
+      "type": "io",
+      "parent": 5
+  },
+  {
+      "id": 13,
+      "users": [
+          "ana",
+          "bob"
+      ],
+      "name": "button.css",
+      "type": "io",
+      "parent": 5
+  },
+  {
+      "id": 14,
+      "users": [
+          "ana",
+          "bob"
+      ],
+      "name": "button.html",
+      "type": "io",
+      "parent": 5
+  },
+  {
+      "id": 15,
+      "users": [
+          "ana",
+          "bob"
+      ],
+      "name": "write button js, css, and html",
+      "type": "task",
+      "parent": 5
+  }
+]
+},{}],5:[function(require,module,exports){
 (function (process,__filename){(function (){
 // MODULE STATE & ID
 var count = 0
@@ -689,49 +953,33 @@ const shopts = { mode: 'closed' }
 //  ----------------------------------------
 module.exports = task_explorer
 //  ----------------------------------------
-async function task_explorer (opts, protocol) {
+function task_explorer (opts, protocol) {
   // ----------------------------------------
   // ID + JSON STATE
   // ----------------------------------------
   const id = `${ID}:${count++}` // assigns their own name
   const status = {}
   const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {} } // all state of component instance
-  const { users } = opts
-  const json_data = [
-    {id: 0, name: 'roadmap', type: 'task', root: true, children: [1, 2], chat: [{username: 'ana', content: 'Hello'}, {username: 'bob', content: 'Hello'}] },
-    {id: 1, name: 'UI/UX design', type: 'task', children: [3, 4] },
-    {id: 2, name: 'implementation', type: 'task', children: [5, 6] },
-    {id: 3, name: 'design button', type: 'task', outputs: [7], children: [8, 10]},
-    {id: 4, name: 'design searchbar', type: 'task'},
-    {id: 5, name: 'implement button', type: 'task', inputs: [7, 9, 11], outputs: [12, 13, 14], children: [15]},
-    {id: 6, name: 'implement searchbar', type: 'task'},
-    {id: 7, name: 'button repo', type: 'io', children: [5, 6]},
-    {id: 8, name: 'make button icon', type: 'task', outputs: [9]},
-    {id: 9, name: 'button icon.svg', type: 'io', children: [5, 6]},
-    {id: 10, name: 'wireframe button', type: 'task', outputs: [11]},
-    {id: 11, name: 'button.fig', type: 'io', children: [5, 6]},
-    {id: 12, name: 'button.js', type: 'io'},
-    {id: 13, name: 'button.css', type: 'io'},
-    {id: 14, name: 'button.html', type: 'io'},
-    {id: 15, name: 'write button js, css, and html', type: 'task'},
-  ]
+  const { host } = opts
+  const json_data = JSON.parse(JSON.stringify(require('./data.json')))
   const name = 'task_explorer'
   let selected_task
-  let chat_task
-  let code_words = {inputs: 'io', outputs: 'io', children: 'task'}
+  let chat_task, result, track
+  let code_words = {inputs: 'io', outputs: 'io', tasks: 'task'}
   // ----------------------------------------
   // PROTOCOL
   // ----------------------------------------
   const on = { 
-    'on_add_task': on_add_task,
+    'on_add_node': on_add_node,
     'handle_add': handle_add,
     'send': send,
-    'get_chat': get_chat,
     'post_msg': post_msg,
     'handle_invite': handle_invite,
-    'on_invite': on_invite
+    'on_invite': on_invite,
+    'handle_export': handle_export
   }
   const channel_up = use_protocol('up')({ protocol, state, on })
+
   // ----------------------------------------
   // TEMPLATE
   // ----------------------------------------
@@ -742,18 +990,18 @@ async function task_explorer (opts, protocol) {
     <main>
     </main>`
   // ----------------------------------------
-  const task_tree = shadow.querySelector('main')
+  const tree_el = shadow.querySelector('main')
   // ----------------------------------------
   // INIT
   // ----------------------------------------
-  fill_task_tree()
+  fill_tree_el()
   return el
 
-  async function fill_task_tree () {
-    task_tree.innerHTML = ''
-    task_tree.append(...json_data.filter(data => data.root).map(add_task))
+  async function fill_tree_el () {
+    tree_el.innerHTML = ''
+    tree_el.append(...json_data.filter(data => data.root).map(add_node_el))
   }
-  function add_task (data) {
+  function add_node_el (data) {
     const element = document.createElement('div')
     element.classList.add(data.type, 'node')
     element.tabIndex = '0'
@@ -762,104 +1010,185 @@ async function task_explorer (opts, protocol) {
       <div class="inputs nodes">
       </div>
       <div class="task_name">
+        <div class="before"></div>
+        <div class="emoji"></div>
         ${data.name}
+        <div class="after">🔗</div>
       </div>
       <div class="outputs nodes">
       </div>
-      <div class="children nodes">
+      <div class="tasks nodes">
       </div>
     `
-    const task_name = element.querySelector('.task_name')
+
+    const before = element.querySelector('.task_name > .before')
+    const after = element.querySelector('.task_name > .after')
     const outputs = element.querySelector('.outputs')
     const inputs = element.querySelector('.inputs')
-    const children = element.querySelector('.children')
-    task_name.onclick = () => {
+    const tasks = element.querySelector('.tasks')
+    before.onclick = () => {
       element.classList.toggle('show')
+      if(data.outputs && outputs.children.length < 1){
+        for(const i of data.outputs)
+          outputs.append(add_node_el(json_data[i]))
+        outputs.classList.add('padding')
+      }
+      if(data.tasks && tasks.children.length < 1){
+        for(const i of data.tasks)
+          tasks.append(data.type === 'io' ? add_node_link(json_data[i]) : add_node_el(json_data[i]))
+        tasks.classList.add('padding')
+        outputs.classList.add('border')
+      }
+      if(data.inputs && inputs.children.length < 1){
+        for(const i of data.inputs)
+          inputs.append(add_node_el(json_data[i]))
+        inputs.classList.add('padding')
+      }
+    }
+    element.onfocus = () => {
       selected_task = element
-      selected_task.focus()
       selected_task.addEventListener('blur', e => {
         if(e.relatedTarget && e.relatedTarget.classList.contains('noblur'))
           return
         selected_task = undefined
       })
-      if(data.outputs && outputs.children.length < 1){
-        for(const i of data.outputs){
-          outputs.append(add_task(json_data[i]))
-        }
-        outputs.classList.add('padding')
+    }
+    element.ondblclick = open_chat
+    after.onclick = () => {
+      alert(host+'-'+data.id)
+      try{
+        navigator.clipboard.writeText(host+'-'+data.id) 
       }
-      if(data.children && children.children.length < 1){
-        for(const i of data.children){
-          children.append(add_task(json_data[i]))
-        }
-        children.classList.add('padding')
-        outputs.classList.add('border')
-      }
-      if(data.inputs && inputs.children.length < 1){
-        for(const i of data.inputs){
-          inputs.append(add_task(json_data[i]))
-        }
-        inputs.classList.add('padding')
+      catch{
+
       }
     }
-    
+    return element
+  }
+  function add_node_link (data) {
+    const element = document.createElement('div')
+    element.classList.add('next', 'node')
+    element.dataset.id = data.id
+    element.innerHTML = `
+      <div class="task_name">
+        <div class="before"></div>
+        ${data.name}
+      </div>`
+    element.onclick = jump
     
     return element
   }
-  async function add_node (name, type, parent_id){
+  async function jump (e){
+    let target_id = e.currentTarget.dataset.id
+    const el = tree_el.querySelector('#a'+target_id)
+    if(el)
+      el.focus()
+    else{
+      let temp = json_data[target_id]
+      const path = []
+      while(!temp.root){
+        path.push(temp.id)
+        temp = json_data[temp.parent]
+      }
+      temp = tree_el.querySelector('#a'+temp.id)
+      target_id = 'a'+target_id
+      while(temp.id !== target_id){
+        const before = temp.querySelector('.before')
+        before.dispatchEvent(new MouseEvent('click', {bubbles:true, cancelable: true, view: window}))
+        temp.classList.add('show')
+        temp = temp.querySelector('#a'+path.pop())
+      }
+      temp.focus()
+    }
+      
+  }
+  async function traverse (id) {
+    result = []
+    track = []
+    recurse(id)
+    return result
+  }
+  function recurse (id){
+    if(track.includes(id))
+      return
+    result.push(json_data[id])
+    track.push(id)
+    temp = 0
+    while(json_data[id].tasks && temp < json_data[id].tasks.length){
+      recurse(json_data[id].tasks[temp])
+      temp++
+    }
+    temp = 0
+    while(json_data[id].inputs && temp < json_data[id].inputs.length){
+      recurse(json_data[id].inputs[temp])
+      temp++
+    }
+    temp = 0
+    while(json_data[id].outputs && temp < json_data[id].outputs.length){
+      recurse(json_data[id].outputs[temp])
+      temp++
+    }
+  }
+  async function add_node_data (name, type, parent_id){
     const node_id = json_data.length
     json_data.push({ id: node_id, name, type: code_words[type] })
     if(parent_id){
-      const children = json_data[parent_id.slice(1)][type]
-      if(children !== undefined)
-        children.push(json_data.length)
-      else
-        json_data[parent_id.slice(1)][type] = [node_id]
+      const children = json_data[parent_id][type]
+      !chat_task && json_data[parent_id].chat.push({username: 'system', content: 'Added '+name})
+      children ? children.push(node_id) : json_data[parent_id][type] = [node_id]
     }
     else{
       json_data[node_id].root = true
       json_data[node_id].users = [opts.host]
     }
   }
-  async function on_add_task (data) {
-    let tree_container
-    if(data.id){
-      const task = shadow.querySelector('#' + data.id)
-      if(task)
-        tree_container = task.querySelector('.'+data.type)
-    }
-    else
-      tree_container = task_tree
-    if(tree_container)
-      tree_container.prepend(add_task({ name: data.name, id: json_data.length, type: code_words[data.type] }))
-    add_node(data.name, data.type, data.id)
+  async function on_add_node (data) {
+    const node = data.id ? shadow.querySelector('#a' + data.id + ' > .'+data.type) : tree_el
+    node.children.length > 0 && node.prepend(add_node_el({ name: data.name, id: json_data.length, type: code_words[data.type] }))
+    add_node_data(data.name, data.type, data.id)
+  }
+  async function handle_export () {
+    const data = await traverse( selected_task.id.slice(1) )
+    const json_string = JSON.stringify(data, null, 2);
+    const blob = new Blob([json_string], { type: 'application/json' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'data.json';
+    link.click();
   }
   async function handle_add ({ data }) {
-    data = data.trim().toLowerCase() + 's'
-    if(data === 'tasks')
-      data = 'children'
+    data = data.slice(2).trim().toLowerCase() + 's'
     const input = document.createElement('input')
-    let tree_container, task_id
+    let node, task_id
     if(selected_task){
-      tree_container = selected_task.querySelector('.' + data)
-      task_id = selected_task.id
+      node = selected_task.querySelector('.' + data)
+      task_id = selected_task.id.slice(1)
+      const before = selected_task.querySelector('.before')
+      before.dispatchEvent(new MouseEvent('click', {bubbles:true, cancelable: true, view: window}))
+      selected_task.classList.add('show')
     }
     else{
-      tree_container = task_tree
+      node = tree_el
       task_id = ''
     }
 
-    tree_container.prepend(input)
+    node.prepend(input)
     input.onkeydown = async (event) => {
       if (event.key === 'Enter') {
-        tree_container.firstElementChild.remove()
-        tree_container.prepend(add_task({ name: input.value, id: json_data.length, type: code_words[data] }))
-        add_node(input.value, data, task_id)
-        if(task_id)
+        node.firstElementChild.remove()
+        node.prepend(add_node_el({ name: input.value, id: json_data.length, type: code_words[data] }))
+        add_node_data(input.value, data, task_id)
+        if(task_id && json_data[task_id].users.length > 1)
           channel_up.send({
             head: [id, channel_up.send.id, channel_up.mid++],
             type: 'send',
-            data: {to: 'task_explorer', route: ['up', 'task_explorer'], users, type: 'on_add_task', data: {name: input.value, id: task_id, type: data} }
+            data: {to: 'task_explorer', route: ['up', 'task_explorer'], users: json_data[task_id].users.filter(user => user !== host), type: 'on_add_node', data: {name: input.value, id: task_id, type: data} }
+          })
+        if(chat_task && task_id === chat_task.id.slice(1))
+          channel_up.send({
+            head: [id, channel_up.send.id, channel_up.mid++],
+            type: 'post_msg',
+            data: {username: 'system', content: 'Added '+input.value}
           })
       }
     }
@@ -880,58 +1209,75 @@ async function task_explorer (opts, protocol) {
       data
     })
   }
-  async function get_chat () {
+  async function open_chat () {
     const node = json_data[Number(selected_task.id.slice(1))]
     channel_up.send({
       head: [id, channel_up.send.id, channel_up.mid++],
-      type: 'set_chat',
+      type: 'open_chat',
       data: {chat_data: node.chat, chat_id: node.id}
     })
     
     if(chat_task)
-      chat_task.classList.remove('chat_focus')
+      chat_task.classList.remove('chat_active')
     chat_task = selected_task
-    chat_task.classList.add('chat_focus')
+    chat_task.classList.add('chat_active')
   }
   async function post_msg ({ data }) {
     const node = json_data[Number(data.chat_id)]
     node.chat.push({ username: data.username, content: data.content })
   }
-  async function handle_invite ({ data }) {
-    const node = json_data[Number(selected_task.id.slice(1))]
+  async function handle_invite ({ sender, task_id }) {
+    const node = json_data[Number(task_id)]
+    node.users.push(sender)
     channel_up.send({
       head: [id, channel_up.send.id, channel_up.mid++],
       type: 'send',
-      data: {to: 'task_explorer', route: ['up', 'task_explorer'], users: [data], type: 'on_invite', data: node }
+      data: {to: 'task_explorer', route: ['up', 'task_explorer'], users: [sender], type: 'on_invite', data: node }
     })
   }
   async function on_invite (data) {
     const {name, id, type} = data
-    task_tree.prepend(add_task({ name, id, type }))
+    tree_el.prepend(add_node_el({ name, id, type }))
     json_data.push(data)
   }
 }
 
 function get_theme () {
   return `
+  main{
+    max-height: 300px;
+    overflow-y: scroll;
+  }
   .task{
     cursor: pointer;
     margin: 5px 0;
     margin-left: 10px;
   }
-  .task > .task_name::before{
-    content: '\\251C \\2795 \\2500';
+  .task_name > .emoji{
+    display: inline;
+    margin-left: -4px;
   }
-  .task:last-child > .task_name::before{
-    content: '\\2514 \\2795 \\2500';
+  .node > .task_name > .emoji::before{
+    content: '─📭';
   }
-  .task.show > .task_name::before{
-    content: '\\251C \\2796 \\2500';
+  .node > .task_name::before{
+    content: '├➕';
   }
-  .task.show:last-child > .task_name::before{
-    content: '\\2514 \\2796 \\2500';
+  .node:last-child > .task_name::before{
+    content: '└➕';
   }
-  
+  .node.show > .task_name::before{
+    content: '├➖';
+  }
+  .node.show:last-child > .task_name::before{
+    content: '└➖';
+  }
+  .next > .task_name::before {
+    content: '├🖇️─';
+  }
+  .next:last-child > .task_name::before {
+    content: '└🖇️─';
+  }
   .node > .nodes{
     display: none;
     margin: 5px 0;
@@ -940,8 +1286,8 @@ function get_theme () {
     border-left: 1px solid white;
     position: relative;
   }
-  .task:last-child > .children,
-  .task:last-child > .outputs{
+  .node:last-child > .tasks,
+  .node:last-child > .outputs{
     border-color: transparent;
   }
 
@@ -949,24 +1295,37 @@ function get_theme () {
     margin-left: -5px;
   }
    .input.padding:first-child,
-   .children.padding:first-child{
+   .tasks.padding:first-child{
     padding-top: 5px;
   }
    .output.padding:last-child,
-   .children.padding:last-child{
+   .tasks.padding:last-child{
     padding-bottom: 5px
   }
-   .inputs > .io > .task_name::before{
-    content: '\\251C \\1F4E5 \\2500';
+  .inputs > .io > .task_name > .emoji::before{
+    content: '─📥';
   }
-   .inputs > .io:first-child > .task_name::before{
-    content: '\\250C \\1F4E5 \\2500';
+  .outputs > .io > .task_name > .emoji::before{
+    content: '─📤';
   }
-   .outputs > .io > .task_name::before{
-    content: '\\251C \\1F4E4 \\2500';
+  .inputs > .node:first-child > .task_name::before{
+    content: '┌➕';
   }
-   .outputs > .io:last-child > .task_name::before{
-    content: '\\2514 \\1F4E4 \\2500';
+  .inputs.show > .node:first-child > .task_name::before{
+    content: '┌➖';
+  }
+  .task_name{
+    position: relative;
+  }
+  .task_name > .before{
+    display: inline;
+    position: absolute;
+    left: 0;
+    width: 43px;
+    height: 18px;
+  }
+  .task_name > .after{
+    display: inline;
   }
    .io{
     padding-left: 15px;
@@ -978,7 +1337,7 @@ function get_theme () {
   .task:focus{
     background-color: #222;
   }
-  .task.chat_focus > .task_name::after{
+  .task.chat_active > .task_name::after{
     content: '';
     background-color: green;
     border-radius: 100%;
@@ -1019,4 +1378,4 @@ function use_protocol (petname) {
 }
 
 }).call(this)}).call(this,require('_process'),"/src/node_modules/task_explorer/task_explorer.js")
-},{"_process":2}]},{},[1]);
+},{"./data.json":4,"_process":2}]},{},[1]);
