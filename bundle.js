@@ -1164,13 +1164,41 @@ function task_explorer (opts, protocol) {
     add_node_data(data.name, data.type, data.id, data.users.push(host))
   }
   async function handle_export () {
-    const data = await traverse( selected_task.id.slice(1) )
-    const json_string = JSON.stringify(data, null, 2);
-    const blob = new Blob([json_string], { type: 'application/json' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = 'data.json';
-    link.click();
+    // const data = await traverse( selected_task.id.slice(1) )
+    // const json_string = JSON.stringify(data, null, 2);
+    // const blob = new Blob([json_string], { type: 'application/json' });
+    // const link = document.createElement('a');
+    // link.href = URL.createObjectURL(blob);
+    // link.download = 'data.json';
+    // link.click();
+    var tempElement = document.createElement('div');
+
+    tempElement.innerHTML = selected_task.innerHTML;
+    tempElement.style.position = 'absolute';
+    tempElement.style.left = '-9999px';
+    tempElement.style.padding = getComputedStyle(selected_task).padding;
+    tempElement.style.margin = getComputedStyle(selected_task).margin;
+
+    document.body.appendChild(tempElement);
+
+    // Select the content
+    var range = document.createRange();
+    range.selectNode(tempElement);
+    window.getSelection().removeAllRanges();
+    window.getSelection().addRange(range);
+
+    // Copy to clipboard
+    navigator.clipboard.writeText(tempElement.innerHTML)
+    .then(() => {
+        // Cleanup
+        window.getSelection().removeAllRanges();
+        document.body.removeChild(tempElement);
+        alert('HTML copied to clipboard');
+    })
+    .catch((err) => {
+        console.error('Failed to copy HTML: ', err);
+    });
+
   }
   async function handle_add ({ data }) {
     data = data.slice(2).trim().toLowerCase() + 's'
@@ -1282,13 +1310,13 @@ function get_theme () {
   .node > .task_name::before{
     content: '├➕';
   }
-  .node:last-child > .task_name::before{
+  :not(.inputs) > .node:last-child > .task_name::before{
     content: '└➕';
   }
   .node.show > .task_name::before{
     content: '├➖';
   }
-  .node.show:last-child > .task_name::before{
+  :not(.inputs) > .node.show:last-child > .task_name::before{
     content: '└➖';
   }
   .next > .task_name::before {
