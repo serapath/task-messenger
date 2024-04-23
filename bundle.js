@@ -368,14 +368,37 @@ async function task_messenger (opts, protocol) {
           <button class="export noblur">
             export
           </button>
-          <textarea class="noblur" placeholder="join a channel" disabled></textarea>
+          <div class="box">
+            <div class="overlay">
+              <div>/🗃list <span>📌</span></div>
+              <div>/📩text <span>📌</span></div>
+              <div>/🆕🔳task <span>📌</span></div>
+              <div>/🔳subtask <span>📌</span></div>
+              <div>/📨invite <span>📌</span></div>
+              <div>/📥input <span>📌</span></div>
+              <div>/📤output <span>📌</span></div>
+              <div>/😀emoji <span>📌</span></div>
+              <div>/📎attach file <span>📌</span></div>
+            </div>
+            <textarea class="noblur" placeholder="Enter a command"></textarea>
+          </div>
           <div class="send">></div>
+        </div>
+      </div>
+      <div class="footer">
+        <div class="title">
+        </div>
+        <div class="task">
+        </div>
+        <div class="input">
+        </div>
+        <div class="output">
         </div>
       </div>
     </div>
   `
   // ----------------------------------------
-  const container = shadow.querySelector('.container')
+  const chat_el = shadow.querySelector('.chat')
   const btn_add = shadow.querySelector('.add')
   const btn_join = shadow.querySelector('.join')
   const btn_export = shadow.querySelector('.export')
@@ -383,6 +406,8 @@ async function task_messenger (opts, protocol) {
   const textarea = shadow.querySelector('textarea')
   const history = shadow.querySelector('.history')
   const popup = shadow.querySelector('.popup')
+  const footer = shadow.querySelector('.footer')
+  const overlay = shadow.querySelector('.overlay')
   // ----------------------------------------
   btn_add.onclick = handle_popup
   btn_join.onclick = handle_join
@@ -404,7 +429,7 @@ async function task_messenger (opts, protocol) {
     }
     const protocol = use_protocol('task_explorer')({ state, on })
     const element = task_explorer(opts = { users, host: username }, protocol)
-    container.prepend(element)
+    chat_el.after(element)
   }
   // ----------------------------------------
   // INIT
@@ -425,7 +450,7 @@ async function task_messenger (opts, protocol) {
     if(textarea.disabled)
       return
     if(textmode === "msg")
-      post_msg()
+      post_msg({data: {content: textarea.value.replaceAll('\n', '<br>'), username}})
     else
       join()
   }
@@ -458,7 +483,19 @@ async function task_messenger (opts, protocol) {
     e.target.style.height = (2+e.target.scrollHeight)+"px";
     if(e.key === 'Shift')
       shift_status = true
-    
+    if(textarea.value === '/'){
+      overlay.classList.add('show')
+      textarea.addEventListener('blur', textarea_onblur)
+      textarea.addEventListener('focus', textarea_onblur)
+    }
+    else{
+      overlay.classList.remove('show')
+      textarea.removeEventListener('blur', textarea_onblur)
+      textarea.removeEventListener('focus', textarea_onblur)
+    }
+  }
+  async function textarea_onblur () {
+    overlay.classList.toggle('show')
   }
   async function handle_join () {
     textarea.disabled = false
@@ -545,7 +582,7 @@ async function task_messenger (opts, protocol) {
     })
   }
   async function open_chat ({ data }){
-    chat = {data: data.chat_data, id: data.chat_id}
+    chat = {data: data.chat, id: data.id}
     history.innerHTML = ''
     chat.data.forEach(msg => {
       const element = document.createElement('div')
@@ -566,6 +603,16 @@ async function task_messenger (opts, protocol) {
     })
     textarea.disabled = false
     textarea.placeholder = "Type a message"
+
+    const title = footer.querySelector('.title')
+    title.innerHTML = data.name
+    const input = footer.querySelector('.input')
+    input.innerHTML = `Inputs: ${data.inputs ? data.inputs.length : '0'}`
+    const output = footer.querySelector('.output')
+    output.innerHTML = `Outputs: ${data.outputs ? data.outputs.length : '0'}`
+    const task = footer.querySelector('.task')
+    task.innerHTML = `Tasks: ${data.tasks ? data.tasks.length : '0'}`
+    
   }
 }
 function get_theme () {
@@ -605,7 +652,7 @@ function get_theme () {
       flex-direction: column;
       width: 100%;
       height: 100%;
-      border-top: 1px solid gray;
+      border-bottom: 1px solid gray;
       background-color: #212121;
     }
     .chat > .history{
@@ -641,12 +688,35 @@ function get_theme () {
     .chat .msg.right .username{
       right: 10px;
     }
-    textarea{
+    .box{
+      position: relative;
       margin: 40px 20px;
+    }
+    .box > textarea{
       height: 40px;
       min-height: 40px;
       padding: 10px;
       width: 100%;
+    }
+    .box > .overlay{
+      display: none;
+      position: absolute;
+      background-color: #222;
+      box-shadow: 0 0 2px 1px rgb(255, 255, 255);
+      width: 100%;
+      bottom: 50px;
+    }
+    .box > .overlay.show{
+      display: block;
+    }
+    .box > .overlay > div{
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      padding: 4px 10px;
+    }
+    .box > .overlay > div:hover{
+      background-color: #555;
     }
     textarea::-webkit-scrollbar{
       display: none;
@@ -677,6 +747,11 @@ function get_theme () {
       height: 30px;
       cursor: pointer;
       border-radius: 4px;
+    }
+    .footer{
+      display: flex;
+      justify-content: space-around;
+      width: 100%;
     }
   `
 }
@@ -734,7 +809,7 @@ module.exports=[
           },
           {
               "username": "system",
-              "content": "Added UI/UX design"
+              "content": "Ana added task: UI/UX design"
           }
       ]
   },
@@ -750,7 +825,7 @@ module.exports=[
           3,
           4
       ],
-      "parent": 0,
+      "sup": [0],
       "chat": []
   },
   {
@@ -765,7 +840,7 @@ module.exports=[
           5,
           6
       ],
-      "parent": 0,
+      "sup": [0],
       "chat": []
   },
   {
@@ -783,7 +858,7 @@ module.exports=[
           8,
           10
       ],
-      "parent": 1,
+      "sup": [1],
       "chat": []
   },
   {
@@ -798,7 +873,7 @@ module.exports=[
           8,
           10
       ],
-      "parent": 1,
+      "sup": [1],
       "chat": []
   },
   {
@@ -822,7 +897,7 @@ module.exports=[
       "tasks": [
           15
       ],
-      "parent": 2,
+      "sup": [2],
       "chat": []
   },
   {
@@ -833,7 +908,7 @@ module.exports=[
       ],
       "name": "implement searchbar",
       "type": "task",
-      "parent": 2,
+      "sup": [2],
       "chat": []
   },
   {
@@ -848,7 +923,7 @@ module.exports=[
           5,
           6
       ],
-      "parent": 3,
+      "sup": [3],
       "chat": []
   },
   {
@@ -862,7 +937,7 @@ module.exports=[
       "outputs": [
           9
       ],
-      "parent": 3,
+      "sup": [3],
       "chat": []
   },
   {
@@ -877,7 +952,7 @@ module.exports=[
           5,
           6
       ],
-      "parent": 8,
+      "sup": [8],
       "chat": []
   },
   {
@@ -891,7 +966,7 @@ module.exports=[
       "outputs": [
           11
       ],
-      "parent": 3,
+      "sup": [3],
       "chat": []
   },
   {
@@ -906,7 +981,7 @@ module.exports=[
           5,
           6
       ],
-      "parent": 10,
+      "sup": [10],
       "chat": []
   },
   {
@@ -917,7 +992,7 @@ module.exports=[
       ],
       "name": "button.js",
       "type": "io",
-      "parent": 5,
+      "sup": [5],
       "chat": []
   },
   {
@@ -928,7 +1003,7 @@ module.exports=[
       ],
       "name": "button.css",
       "type": "io",
-      "parent": 5,
+      "sup": [5],
       "chat": []
   },
   {
@@ -939,7 +1014,7 @@ module.exports=[
       ],
       "name": "button.html",
       "type": "io",
-      "parent": 5,
+      "sup": [5],
       "chat": []
   },
   {
@@ -950,12 +1025,13 @@ module.exports=[
       ],
       "name": "write button js, css, and html",
       "type": "task",
-      "parent": 5,
+      "sup": [5],
       "chat": []
   }
 ]
 },{}],5:[function(require,module,exports){
 (function (process,__filename){(function (){
+const taskdb = require('taskdb')
 // MODULE STATE & ID
 var count = 0
 const [cwd, dir] = [process.cwd(), __filename].map(x => new URL(x, 'file://').href)
@@ -976,11 +1052,10 @@ function task_explorer (opts, protocol) {
   const status = {}
   const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {} } // all state of component instance
   const { host } = opts
-  const json_data = JSON.parse(JSON.stringify(require('./data.json')))
   const name = 'task_explorer'
-  let selected_task
+  let selected_task, query_result
   let chat_task, result, track
-  let code_words = {inputs: 'io', outputs: 'io', tasks: 'task'}
+  const code_words = {inputs: 'io', outputs: 'io', tasks: 'task'}
   // ----------------------------------------
   // PROTOCOL
   // ----------------------------------------
@@ -993,6 +1068,11 @@ function task_explorer (opts, protocol) {
     'on_invite': on_invite,
     'handle_export': handle_export
   }
+  const on_add = {
+    'inputs': add_node_input,
+    'outputs': add_node_output,
+    'tasks': add_node_sub
+  }
   const channel_up = use_protocol('up')({ protocol, state, on })
 
   // ----------------------------------------
@@ -1002,92 +1082,314 @@ function task_explorer (opts, protocol) {
   const shadow = el.attachShadow(shopts)
   shadow.adoptedStyleSheets = [sheet]
   shadow.innerHTML = `
-    <main>
-    </main>`
+    <div class="box">
+      <main>
+      </main>
+      <div class="popup" tabindex="0">
+        <div>Edit</div>
+        <div>Drop</div>
+      </div>
+    </div>
+    `
   // ----------------------------------------
   const tree_el = shadow.querySelector('main')
+  const popup = shadow.querySelector('.popup')
+  // ----------------------------------------
+  // ELEMENTS
+  // ----------------------------------------
+  {
+    const on = { 
+      'set': set
+    }
+    const protocol = use_protocol('taskdb')({ state, on })
+    taskdb(opts = {host}, protocol)
+    async function set ({ data }) {
+      query_result = data
+    }
+  }
   // ----------------------------------------
   // INIT
   // ----------------------------------------
+  let json_data
+  const channel = state.net[state.aka.taskdb]
+  channel.send({
+    head: [id, channel.send.id, channel.mid++],
+    type: 'get',
+    data: '/'
+  })
+  if(query_result)
+    json_data = query_result
+  else{
+    json_data = JSON.parse(JSON.stringify(require('./data.json')))
+    channel.send({
+      head: [id, channel.send.id, channel.mid++],
+      type: 'set',
+      data: json_data
+    })
+  }
+
   fill_tree_el()
   return el
 
   async function fill_tree_el () {
-    tree_el.innerHTML = ''
-    tree_el.append(...json_data.filter(data => data.root).map(add_node_el))
+    const root_nodes = json_data.filter(data => data.root)
+    const length = root_nodes.length - 1
+    tree_el.append(...root_nodes.map((data, i) => add_node_root({ data, last: i === length })))
   }
-  function add_node_el (data) {
+  function add_node_el ({ data, parent, space, super_last, type }){
+    const check = parent.children.length ? false : true
+    if(data.root){
+      parent.prepend(add_node_root({ data, last: false}))
+      return
+    }
+    if(type === 'inputs')
+      parent.append(on_add[type]({ data, space, super_last, first: check}))
+    else
+      parent.prepend(on_add[type]({ data, space, super_last, last: check}))
+
+  }
+  function add_node_root ({ data, last }) {
     const element = document.createElement('div')
     element.classList.add(data.type, 'node')
     element.tabIndex = '0'
     element.id = 'a'+data.id
+    const space = ''
+    element.dataset.space = space
+    element.dataset.super_last = last ? 'a' : ''
+
     element.innerHTML = `
+      <div class="task_name">
+        ${last ? '└' : '├'}<span class="tas">📓─</span>${data.name}<span class="last">...</span>
+      </div>
+      <div class="tasks nodes">
+      </div>
+    `
+    const sub = element.querySelector('.task_name > .tas')
+    const last_el = element.querySelector('.task_name > .last')
+    // const after = element.querySelector('.task_name > .after')
+    const tasks = element.querySelector('.tasks')
+    
+    let sub_open
+    sub.onclick = () => {
+      if(sub_open){
+        sub.innerHTML = '📓─'
+      } else{
+        sub.innerHTML = '📖┬'
+      }
+      sub_open = !sub_open
+      tasks.classList.toggle('show')
+      if(data.tasks && tasks.children.length < 1){
+        length = data.tasks.length - 1
+        data.tasks.forEach((value, i) => data.type === 'io' ? add_node_link(json_data[value]) : tasks.append(add_node_sub({ data: json_data[value], last: length === i, super_last: last, space })))
+      }
+    }
+    element.onfocus = () => {
+      selected_task = element
+      selected_task.classList.add('focus')
+      selected_task.addEventListener('blur', e => {
+        if(e.relatedTarget && e.relatedTarget.classList.contains('noblur'))
+          return
+        selected_task.classList.remove('focus')
+        selected_task = undefined
+      }, { once: true })
+    }
+    element.onclick = open_chat
+    last_el.onclick = () => {
+      last_el.classList.add('show')
+      popup.style.top = last_el.offsetTop - 20 + 'px'
+      popup.style.left = last_el.offsetLeft - 56 + 'px'
+      popup.focus()
+      popup.addEventListener('blur', () => {
+        last_el.classList.remove('show')
+      }, { once: true })
+    }
+    return element
+  }
+  function add_node_sub ({ data, last, super_last, space }) {
+    const element = document.createElement('div')
+    element.classList.add(data.type, 'node')
+    element.tabIndex = '0'
+    element.id = 'a'+data.id
+
+    if(!data.root)
+      space += super_last ? '&emsp;&emsp;' : '│&emsp;&nbsp;'
+    element.dataset.space = space
+    element.dataset.super_last = last ? 'a' : ''
+
+    element.innerHTML = `
+      <div class="super nodes">
+      </div>
       <div class="inputs nodes">
       </div>
       <div class="task_name">
-        <div class="before"></div>
-        <div class="emoji"></div>
-        ${data.name}
-        <div class="after">🔗</div>
+        ${space}${last ? '└' : '├'}<span class="sup">📪</span><span class="tas">─📪</span><span class="inp">🗃</span><span class="out">─🗃</span>${data.name}<span class="last">...</span>
       </div>
       <div class="outputs nodes">
       </div>
       <div class="tasks nodes">
       </div>
     `
-
-    const before = element.querySelector('.task_name > .before')
-    const after = element.querySelector('.task_name > .after')
+    const sup = element.querySelector('.task_name > .sup')
+    const sub = element.querySelector('.task_name > .tas')
+    const inp = element.querySelector('.task_name > .inp')
+    const out = element.querySelector('.task_name > .out')
+    const last_el = element.querySelector('.task_name > .last')
+    // const after = element.querySelector('.task_name > .after')
+    const sup_tasks = element.querySelector('.super')
     const outputs = element.querySelector('.outputs')
     const inputs = element.querySelector('.inputs')
     const tasks = element.querySelector('.tasks')
-    before.onclick = () => {
-      element.classList.toggle('show')
-      if(data.outputs && outputs.children.length < 1){
-        for(const i of data.outputs)
-          outputs.append(add_node_el(json_data[i]))
-        outputs.classList.add('padding')
+    
+    let sup_open, sub_open, inp_open, out_open
+    sup.onclick = () => {
+      if(sup_open){
+        sup.innerHTML = '📪'
+        sub_open ? sub.innerHTML = '┬'+sub.innerHTML.slice(1) : sub.innerHTML = '─'+sub.innerHTML.slice(1)
+      } else{
+        sup.innerHTML = '📭'
+        sub_open ? sub.innerHTML = '┼'+sub.innerHTML.slice(1) : sub.innerHTML = '┴'+sub.innerHTML.slice(1)
       }
+      sup_open = !sup_open
+      sup_tasks.classList.toggle('show')
+      if(data.sup && sup_tasks.children.length < 1){
+        length = data.sup.length - 1
+        data.sup.forEach((value, i) => sup_tasks.append(add_node_sup({ data: json_data[value], first: 0 === i, space })))
+      }
+    }
+    sub.onclick = () => {
+      if(sub_open){
+        sup_open ? sub.innerHTML = '┴📪' : sub.innerHTML = '─📪'
+      } else{
+        sup_open ? sub.innerHTML = '┼📭' : sub.innerHTML = '┬📭'
+      }
+      sub_open = !sub_open
+      tasks.classList.toggle('show')
       if(data.tasks && tasks.children.length < 1){
-        for(const i of data.tasks)
-          tasks.append(data.type === 'io' ? add_node_link(json_data[i]) : add_node_el(json_data[i]))
-        tasks.classList.add('padding')
-        outputs.classList.add('border')
+        length = data.tasks.length - 1
+        data.tasks.forEach((value, i) => data.type === 'io' ? add_node_link(json_data[value]) : tasks.append(add_node_sub({ data: json_data[value], last: length === i, super_last: last, space })))
       }
+    }
+    inp.onclick = () => {
+      if(inp_open){
+        inp.innerHTML = '🗃'
+        out_open ? out.innerHTML = '┬'+out.innerHTML.slice(1) : out.innerHTML = '─'+out.innerHTML.slice(1)
+      } else{
+        inp.innerHTML = '🗂'
+        out_open ? out.innerHTML = '┼'+out.innerHTML.slice(1) : out.innerHTML = '┴'+out.innerHTML.slice(1)
+      }
+      inp_open = !inp_open
+      inputs.classList.toggle('show')
       if(data.inputs && inputs.children.length < 1){
-        for(const i of data.inputs)
-          inputs.append(add_node_el(json_data[i]))
-        inputs.classList.add('padding')
+        length = data.inputs.length - 1
+        data.inputs.forEach((value, i) => inputs.append(add_node_input({ data: json_data[value], first: 0 === i, space })))
+      }
+    }
+    out.onclick = () => {
+      if(out_open){
+        inp_open ? out.innerHTML = '┴🗃' : out.innerHTML = '─🗃'
+      } else{
+        inp_open ? out.innerHTML = '┼🗂' : out.innerHTML = '┬🗂'
+      }
+      out_open = !out_open
+      outputs.classList.toggle('show')
+      if(data.outputs && outputs.children.length < 1){
+        length = data.outputs.length - 1
+        data.outputs.forEach((value, i) => outputs.append(add_node_output({ data: json_data[value], last: length === i, super_last: last, space })))
       }
     }
     element.onfocus = () => {
       selected_task = element
+      selected_task.classList.add('focus')
       selected_task.addEventListener('blur', e => {
         if(e.relatedTarget && e.relatedTarget.classList.contains('noblur'))
           return
+        selected_task.classList.remove('focus')
         selected_task = undefined
-      })
+      }, { once: true })
     }
-    element.ondblclick = open_chat
-    after.onclick = () => {
-      alert(host+'-'+data.id)
-      try{
-        navigator.clipboard.writeText(host+'-'+data.id) 
-      }
-      catch{
+    element.onclick = open_chat
+    last_el.onclick = () => {
+      last_el.classList.add('show')
+      popup.style.top = last_el.offsetTop - 20 + 'px'
+      popup.style.left = last_el.offsetLeft - 56 + 'px'
+      popup.focus()
+      popup.addEventListener('blur', () => {
+        last_el.classList.remove('show')
+      }, { once: true })
+    }
+    // after.onclick = () => {
+    //   alert(host+'-'+data.id)
+    //   try{
+    //     navigator.clipboard.writeText(host+'-'+data.id) 
+    //   }
+    //   catch{
 
+    //   }
+    // }
+    return element
+  }
+  function add_node_sup ({ data, first, space }) {
+    const element = document.createElement('div')
+    element.classList.add(data.type, 'node')
+    element.tabIndex = '0'
+    element.id = 'a'+data.id
+    space += '│&emsp;&nbsp;'
+    element.innerHTML = `
+    <div class="task_name">
+      ${space}${first ? '┌' : '├'}</span><span>📭─</span>${data.name}<span class="after">🔗</span>
+    </div>
+    `
+    return element
+  }
+  function add_node_input ({ data, first, space }) {
+    console.error(data)
+    const element = document.createElement('div')
+    element.classList.add(data.type, 'node')
+    element.tabIndex = '0'
+    element.id = 'a'+data.id
+    const space_sup = space + '│&emsp;&nbsp;│&emsp;&emsp;&ensp;'
+    space += '│&emsp;&emsp;&emsp;&emsp;&ensp;'
+    element.innerHTML = `
+    <div class="task_name">
+      <span class="space">${space}</span><span class="space_sup">${space_sup}</span>${first ? '┌' : '├'}</span><span class="btn">📥─</span>${data.name}<span class="after">🔗</span>
+    </div>
+    <div class="tasks nodes">
+    </div>
+    `
+    const btn = element.querySelector('.task_name > .btn')
+    const tasks = element.querySelector('.tasks')
+    btn.onclick = () => {
+      tasks.classList.toggle('show')
+      if(data.tasks && tasks.children.length < 1){
+        length = data.tasks.length - 1
+        data.tasks.forEach((value, i) => tasks.append(add_node_link(json_data[value], length === i, space)))
       }
     }
     return element
   }
-  function add_node_link (data) {
+  function add_node_output ({ data, last, space }) {
+    const element = document.createElement('div')
+    element.classList.add(data.type, 'node')
+    element.tabIndex = '0'
+    element.id = 'a'+data.id
+    const space_sup = space + '│&emsp;&nbsp;│&emsp;&emsp;&ensp;'
+    space += '│&emsp;&emsp;&emsp;&emsp;&ensp;'
+    element.innerHTML = `
+    <div class="task_name">
+      <span class="space">${space}</span><span class="space_sup">${space_sup}</span>${last ? '└' : '├'}</span><span>📥─</span>${data.name}<span class="after">🔗</span>
+    </div>
+    `
+    return element
+  }
+  function add_node_link ({ data, last, space }) {
     const element = document.createElement('div')
     element.classList.add('next', 'node')
     element.dataset.id = data.id
+    space += '│&emsp;&nbsp;'
+    console.error(data)
     element.innerHTML = `
       <div class="task_name">
-        <div class="before"></div>
-        ${data.name}
+        ${space}${last ? '└' : '├'}${data.name}
       </div>`
     element.onclick = jump
     
@@ -1148,77 +1450,75 @@ function task_explorer (opts, protocol) {
     const node_id = json_data.length
     json_data.push({ id: node_id, name, type: code_words[type], chat: [], users })
     if(parent_id){
-      console.error(json_data[parent_id])
-      !chat_task && json_data[parent_id].chat.push({username: 'system', content: 'Added '+name})
+      !chat_task && json_data[parent_id].chat.push({username: 'system', content: host+' added '+type.slice(0,-1)+': '+name})
       const sub_nodes = json_data[parent_id][type]
       sub_nodes ? sub_nodes.push(node_id) : json_data[parent_id][type] = [node_id]
     }
     else{
       json_data[node_id].root = true
       json_data[node_id].users = [opts.host]
+      console.error(json_data[node_id])
     }
+    const channel = state.net[state.aka.taskdb]
+    channel.send({
+      head: [id, channel.send.id, channel.mid++],
+      type: 'set',
+      data: json_data
+    })
   }
   async function on_add_node (data) {
     const node = data.id ? shadow.querySelector('#a' + data.id + ' > .'+data.type) : tree_el
-    node.children.length > 0 && node.prepend(add_node_el({ name: data.name, id: json_data.length, type: code_words[data.type] }))
+    node.children.length && add_node_el({ data: { name: data.name, id: json_data.length, type: code_words[data.type] }, parent: node, super_last: data.super_last, type: data.type, space: data.space })
     add_node_data(data.name, data.type, data.id, data.users.push(host))
   }
   async function handle_export () {
-    // const data = await traverse( selected_task.id.slice(1) )
-    // const json_string = JSON.stringify(data, null, 2);
-    // const blob = new Blob([json_string], { type: 'application/json' });
-    // const link = document.createElement('a');
-    // link.href = URL.createObjectURL(blob);
-    // link.download = 'data.json';
-    // link.click();
-
-    alert(selected_task.innerText);
-    navigator.clipboard.writeText(selected_task.innerText)
-    .then(() => {
-        // Cleanup
-        window.getSelection().removeAllRanges();
-        document.body.removeChild(tempElement);
-        alert('HTML copied to clipboard');
-    })
-    .catch((err) => {
-        console.error('Failed to copy HTML: ', err);
-    });
-
+    const data = await traverse( selected_task.id.slice(1) )
+    const json_string = JSON.stringify(data, null, 2);
+    const blob = new Blob([json_string], { type: 'application/json' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'data.json';
+    link.click();
   }
   async function handle_add ({ data }) {
     data = data.slice(2).trim().toLowerCase() + 's'
     const input = document.createElement('input')
-    let node, task_id
+    let node, task_id, space = '', super_last = true, root = true
     if(selected_task){
       node = selected_task.querySelector('.' + data)
       task_id = selected_task.id.slice(1)
-      const before = selected_task.querySelector('.before')
+      const before = selected_task.querySelector('.' + data.slice(0,3))
       before.dispatchEvent(new MouseEvent('click', {bubbles:true, cancelable: true, view: window}))
-      selected_task.classList.add('show')
+      node.classList.add('show')
+      super_last = selected_task.dataset.super_last
+      space = selected_task.dataset.space
+      console.error(space, super_last)
+      selected_task.classList.remove('focus')
+      selected_task = undefined
+      root = false
     }
     else{
       node = tree_el
       task_id = ''
     }
-
     node.prepend(input)
     input.onkeydown = async (event) => {
       if (event.key === 'Enter') {
         node.firstElementChild.remove()
-        node.prepend(add_node_el({ name: input.value, id: json_data.length, type: code_words[data] }))
+        add_node_el({ data : { name: input.value, id: json_data.length, type: code_words[data], root }, space, super_last, type: data, parent: node })
         const users = task_id ? json_data[task_id].users : [host]
         add_node_data(input.value, data, task_id, users)
         if(task_id && json_data[task_id].users.length > 1)
           channel_up.send({
             head: [id, channel_up.send.id, channel_up.mid++],
             type: 'send',
-            data: {to: 'task_explorer', route: ['up', 'task_explorer'], users: json_data[task_id].users.filter(user => user !== host), type: 'on_add_node', data: {name: input.value, id: task_id, type: data, users} }
+            data: {to: 'task_explorer', route: ['up', 'task_explorer'], users: json_data[task_id].users.filter(user => user !== host), type: 'on_add_node', data: {name: input.value, id: task_id, type: data, users, super_last, space} }
           })
         if(chat_task && task_id === chat_task.id.slice(1))
           channel_up.send({
             head: [id, channel_up.send.id, channel_up.mid++],
             type: 'post_msg',
-            data: {username: 'system', content: 'Added '+input.value}
+            data: {username: 'system', content: host+' added '+data.slice(0, -1)+': '+input.value}
           })
       }
     }
@@ -1244,7 +1544,7 @@ function task_explorer (opts, protocol) {
     channel_up.send({
       head: [id, channel_up.send.id, channel_up.mid++],
       type: 'open_chat',
-      data: {chat_data: node.chat, chat_id: node.id}
+      data: node
     })
     
     if(chat_task)
@@ -1254,7 +1554,6 @@ function task_explorer (opts, protocol) {
   }
   async function post_msg ({ data }) {
     const node = json_data[Number(data.chat_id)]
-    console.error(node)
     node.chat.push({ username: data.username, content: data.content })
   }
   async function handle_invite ({ sender, task_id }) {
@@ -1269,116 +1568,88 @@ function task_explorer (opts, protocol) {
   }
   async function on_invite (data) {
     const {name, id, type} = data
-    tree_el.prepend(add_node_el({ name, id, type }))
+    tree_el.prepend(add_node_sub({ name, id, type }))
     json_data.push(data)
   }
 }
 
 function get_theme () {
   return `
+  .box{
+    position: relative;
+  }
   main{
     max-height: 300px;
-    overflow-y: scroll;
+    overflow: scroll;
+    max-width: 5px;
+    min-width: 100%;
+  }
+  main > .task{
+    position: relative;
+    min-width: fit-content;
   }
   .task{
     cursor: pointer;
     margin: 5px 0;
-    margin-left: 10px;
-  }
-  .task_name > .emoji{
-    display: inline;
-    margin-left: -4px;
-  }
-  .node > .task_name > .emoji::before{
-    content: '─📭';
-  }
-  .node > .task_name::before{
-    content: '├➕';
-  }
-  :not(.inputs) > .node:last-child > .task_name::before{
-    content: '└➕';
-  }
-  .node.show > .task_name::before{
-    content: '├➖';
-  }
-  :not(.inputs) > .node.show:last-child > .task_name::before{
-    content: '└➖';
-  }
-  .next > .task_name::before {
-    content: '├🖇️─';
-  }
-  .next:last-child > .task_name::before {
-    content: '└🖇️─';
   }
   .node > .nodes{
     display: none;
     margin: 5px 0;
-    padding-left: 5px;
-    margin-left: 0;
-    border-left: 1px solid white;
-    position: relative;
   }
-  .node:last-child > .tasks,
-  .node:last-child > .outputs{
-    border-color: transparent;
+  .nodes.show{
+    display: block;
   }
-
-  .task .task_name{
-    margin-left: -5px;
-  }
-   .input.padding:first-child,
-   .tasks.padding:first-child{
-    padding-top: 5px;
-  }
-   .output.padding:last-child,
-   .tasks.padding:last-child{
-    padding-bottom: 5px
-  }
-  .inputs > .io > .task_name > .emoji::before{
-    content: '─📥';
-  }
-  .outputs > .io > .task_name > .emoji::before{
-    content: '─📤';
-  }
-  .inputs > .node:first-child > .task_name::before{
-    content: '┌➕';
-  }
-  .inputs.show > .node:first-child > .task_name::before{
-    content: '┌➖';
-  }
-  .task_name{
-    position: relative;
-  }
-  .task_name > .before{
-    display: inline;
-    position: absolute;
-    left: 0;
-    width: 43px;
-    height: 18px;
-  }
-  .task_name > .after{
-    display: inline;
-  }
-   .io{
-    padding-left: 15px;
-    margin-left: 10px;
-  }
-  .outputs.border > .io{
-    border-left: 1px solid white;
-  }
-  .task:focus{
+  .node.focus > .task_name{
     background-color: #222;
   }
-  .task.chat_active > .task_name::after{
-    content: '';
-    background-color: green;
-    border-radius: 100%;
-    width: 10px;
-    height: 10px;
-    display: inline-block;
+  .io > .task_name > .space_sup{
+    display: none;
   }
-  .node.show > .nodes{
-    display: block;
+  .super.show + .inputs > .io > .task_name > .space_sup,
+  .outputs:has(+ .tasks.show) > .io > .task_name > .space_sup{
+    display: inline;
+  }
+  .super.show + .inputs > .io > .task_name > .space,
+  .outputs:has(+ .tasks.show) > .io > .task_name > .space{
+    display: none;
+  }
+  .task_name{
+    white-space: nowrap;
+    width: 100%;
+  }
+  .task_name > .last{
+    display: none;
+    position: absolute;
+    right: 3px;
+    padding: 0 2px;
+    background-color: black;
+    color: white;
+    box-shadow: 0 0 20px 1px rgba(255, 255, 255, 0.5);
+  }
+  .task_name:hover > .last,
+  .task_name > .last.show{
+    display: inline;
+  }
+  .task.chat_active > .task_name{
+    color: green;
+  }
+  .popup{
+    height: 0;
+    position: absolute;
+    background-color: #222;
+    z-index: 1;
+    overflow: hidden;
+    cursor: pointer;
+  }
+  .popup:focus{
+    height: auto;
+    box-shadow: 0 0 2px 1px rgb(255, 255, 255);
+  }
+  .popup > div{
+    padding: 5px 10px;
+  }
+  .popup > div:hover{
+    background-color: #555;
   }
   `
 }
@@ -1410,4 +1681,65 @@ function use_protocol (petname) {
 }
 
 }).call(this)}).call(this,require('_process'),"/src/node_modules/task_explorer/task_explorer.js")
-},{"./data.json":4,"_process":2}]},{},[1]);
+},{"./data.json":4,"_process":2,"taskdb":6}],6:[function(require,module,exports){
+(function (process,__filename){(function (){
+// MODULE STATE & ID
+var count = 0
+const [cwd, dir] = [process.cwd(), __filename].map(x => new URL(x, 'file://').href)
+const ID = dir.slice(cwd.length)
+const STATE = { ids: {}, net: {} } // all state of component module
+//  ----------------------------------------
+module.exports = taskdb
+//  ----------------------------------------
+function taskdb (opts, protocol) {
+    // ----------------------------------------
+  // ID + JSON STATE
+  // ----------------------------------------
+  const id = `${ID}:${count++}` // assigns their own name
+  const status = {}
+  const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {} } // all state of component instance
+  const on = { ls, add, get, set }
+  const channel_up = use_protocol('up')({ protocol, state, on })
+  const dbname = 'db_'+opts.host
+  function ls (taskpath = '/') {}
+  function add (taskpath, name) {}
+  function get ({ data }) {
+    const db = localStorage.getItem(dbname)
+    channel_up.send({
+      head: [id, channel_up.send.id, channel_up.mid++],
+      type: 'set',
+      data: JSON.parse(db)
+    })
+  }
+  function set ({ data }) {
+    localStorage.setItem(dbname, JSON.stringify(data))
+  }
+}
+function use_protocol (petname) {
+  return ({ protocol, state, on = { } }) => {
+    if (petname in state.aka) throw new Error('petname already initialized')
+    const { id } = state
+    const invalid = on[''] || (message => console.error('invalid type', message))
+    if (protocol) return handshake(protocol(Object.assign(listen, { id })))
+    else return handshake
+    // ----------------------------------------
+    // @TODO: how to disjoin channel
+    // ----------------------------------------
+    function handshake (send) {
+      state.aka[petname] = send.id
+      const channel = state.net[send.id] = { petname, mid: 0, send, on }
+      return protocol ? channel : Object.assign(listen, { id })
+    }
+    function listen (message) {
+      const [from] = message.head
+      const by = state.aka[petname]
+      if (from !== by) return invalid(message) // @TODO: maybe forward
+      console.log(`[${id}]:${petname}>`, message)
+      const { on } = state.net[by]
+      const action = on[message.type] || invalid
+      action(message)
+    }
+  }
+}
+}).call(this)}).call(this,require('_process'),"/src/node_modules/taskdb/index.js")
+},{"_process":2}]},{},[1]);
