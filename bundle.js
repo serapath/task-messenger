@@ -1164,6 +1164,7 @@ function task_explorer (opts, protocol) {
       <div class="tasks nodes">
       </div>
     `
+    const task_name = element.querySelector('.task_name')
     const sub = element.querySelector('.task_name > .tas')
     const last_el = element.querySelector('.task_name > .last')
     // const after = element.querySelector('.task_name > .after')
@@ -1193,7 +1194,6 @@ function task_explorer (opts, protocol) {
         selected_task = undefined
       }, { once: true })
     }
-    element.onclick = open_chat
     last_el.onclick = () => {
       last_el.classList.add('show')
       popup.style.top = last_el.offsetTop - 20 + 'px'
@@ -1208,8 +1208,8 @@ function task_explorer (opts, protocol) {
   function add_node_sub ({ data, last, super_last, space }) {
     const element = document.createElement('div')
     element.classList.add(data.type, 'node')
-    element.tabIndex = '0'
     element.id = 'a'+data.id
+    element.tabIndex = '0'
 
     if(!data.root)
       space += super_last ? '&emsp;&emsp;' : '│&emsp;&nbsp;'
@@ -1229,6 +1229,7 @@ function task_explorer (opts, protocol) {
       <div class="tasks nodes">
       </div>
     `
+    const task_name = element.querySelector('.task_name')
     const sup = element.querySelector('.task_name > .sup')
     const sub = element.querySelector('.task_name > .tas')
     const inp = element.querySelector('.task_name > .inp')
@@ -1294,7 +1295,7 @@ function task_explorer (opts, protocol) {
       outputs.classList.toggle('show')
       if(data.outputs && outputs.children.length < 1){
         length = data.outputs.length - 1
-        data.outputs.forEach((value, i) => outputs.append(add_node_output({ data: json_data[value], last: length === i, super_last: last, space })))
+        data.outputs.forEach((value, i) => outputs.append(add_node_output({ data: json_data[value], last: length === i, space })))
       }
     }
     element.onfocus = () => {
@@ -1307,7 +1308,7 @@ function task_explorer (opts, protocol) {
         selected_task = undefined
       }, { once: true })
     }
-    element.onclick = open_chat
+    task_name.onclick = open_chat
     last_el.onclick = () => {
       last_el.classList.add('show')
       popup.style.top = last_el.offsetTop - 20 + 'px'
@@ -1362,7 +1363,7 @@ function task_explorer (opts, protocol) {
       tasks.classList.toggle('show')
       if(data.tasks && tasks.children.length < 1){
         length = data.tasks.length - 1
-        data.tasks.forEach((value, i) => tasks.append(add_node_link(json_data[value], length === i, space)))
+        data.tasks.forEach((value, i) => tasks.append(add_node_link({ data: json_data[value], last: length === i, space })))
       }
     }
     return element
