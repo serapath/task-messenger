@@ -600,7 +600,7 @@ function use_protocol (petname) {
 }
 
 }).call(this)}).call(this,require('_process'),"/src/index.js")
-},{"_process":2,"chat_input":4,"task_explorer":6}],4:[function(require,module,exports){
+},{"_process":2,"chat_input":4,"task_explorer":5}],4:[function(require,module,exports){
 (function (process,__filename){(function (){
 // ----------------------------------------
 // MODULE STATE & ID
@@ -884,251 +884,6 @@ function use_protocol (petname) {
 
 }).call(this)}).call(this,require('_process'),"/src/node_modules/chat_input/chat_input.js")
 },{"_process":2}],5:[function(require,module,exports){
-module.exports=[
-  {
-      "id": 0,
-      "users": [
-          "ana",
-          "bob"
-      ],
-      "name": "roadmap",
-      "type": "task",
-      "root": true,
-      "tasks": [
-          1,
-          2
-      ]
-  },
-  {
-      "id": 1,
-      "users": [
-          "ana",
-          "bob"
-      ],
-      "name": "UI/UX design",
-      "type": "task",
-      "tasks": [
-          3,
-          4
-      ],
-      "sup": [0],
-      "chat": [
-        {
-            "username": "ana",
-            "content": "Hello"
-        },
-        {
-            "username": "bob",
-            "content": "Hello"
-        },
-        {
-            "username": "system",
-            "content": "Ana added task: UI/UX design"
-        }
-    ]
-  },
-  {
-      "id": 2,
-      "users": [
-          "ana",
-          "bob"
-      ],
-      "name": "implementation",
-      "type": "task",
-      "tasks": [
-          5,
-          6
-      ],
-      "sup": [0],
-      "chat": []
-  },
-  {
-      "id": 3,
-      "users": [
-          "ana",
-          "bob"
-      ],
-      "name": "design button",
-      "type": "task",
-      "outputs": [
-          7
-      ],
-      "tasks": [
-          8,
-          10
-      ],
-      "sup": [1],
-      "chat": []
-  },
-  {
-      "id": 4,
-      "users": [
-          "ana",
-          "bob"
-      ],
-      "name": "design searchbar",
-      "type": "task",
-      "tasks": [
-          8,
-          10
-      ],
-      "sup": [1],
-      "chat": []
-  },
-  {
-      "id": 5,
-      "users": [
-          "ana",
-          "bob"
-      ],
-      "name": "implement button",
-      "type": "task",
-      "inputs": [
-          7,
-          9,
-          11
-      ],
-      "outputs": [
-          12,
-          13,
-          14
-      ],
-      "tasks": [
-          15
-      ],
-      "sup": [2],
-      "chat": []
-  },
-  {
-      "id": 6,
-      "users": [
-          "ana",
-          "bob"
-      ],
-      "name": "implement searchbar",
-      "type": "task",
-      "sup": [2],
-      "chat": []
-  },
-  {
-      "id": 7,
-      "users": [
-          "ana",
-          "bob"
-      ],
-      "name": "button repo",
-      "type": "io",
-      "tasks": [
-          5,
-          6
-      ],
-      "sup": [3],
-      "chat": []
-  },
-  {
-      "id": 8,
-      "users": [
-          "ana",
-          "bob"
-      ],
-      "name": "make button icon",
-      "type": "task",
-      "outputs": [
-          9
-      ],
-      "sup": [3],
-      "chat": []
-  },
-  {
-      "id": 9,
-      "users": [
-          "ana",
-          "bob"
-      ],
-      "name": "button icon.svg",
-      "type": "io",
-      "tasks": [
-          5,
-          6
-      ],
-      "sup": [8],
-      "chat": []
-  },
-  {
-      "id": 10,
-      "users": [
-          "ana",
-          "bob"
-      ],
-      "name": "wireframe button",
-      "type": "task",
-      "outputs": [
-          11
-      ],
-      "sup": [3],
-      "chat": []
-  },
-  {
-      "id": 11,
-      "users": [
-          "ana",
-          "bob"
-      ],
-      "name": "button.fig",
-      "type": "io",
-      "tasks": [
-          5,
-          6
-      ],
-      "sup": [10],
-      "chat": []
-  },
-  {
-      "id": 12,
-      "users": [
-          "ana",
-          "bob"
-      ],
-      "name": "button.js",
-      "type": "io",
-      "sup": [5],
-      "chat": []
-  },
-  {
-      "id": 13,
-      "users": [
-          "ana",
-          "bob"
-      ],
-      "name": "button.css",
-      "type": "io",
-      "sup": [5],
-      "chat": []
-  },
-  {
-      "id": 14,
-      "users": [
-          "ana",
-          "bob"
-      ],
-      "name": "button.html",
-      "type": "io",
-      "sup": [5],
-      "chat": []
-  },
-  {
-      "id": 15,
-      "users": [
-          "ana",
-          "bob"
-      ],
-      "name": "write button js, css, and html",
-      "type": "task",
-      "sup": [5],
-      "chat": []
-  }
-]
-},{}],6:[function(require,module,exports){
 (function (process,__filename){(function (){
 const taskdb = require('taskdb')
 // MODULE STATE & ID
@@ -1155,6 +910,7 @@ function task_explorer (opts, protocol) {
   let selected_task, query_result
   let chat_task, result, track
   const code_words = {inputs: 'io', outputs: 'io', tasks: 'task'}
+  const add_words = {tasks: 'sup_tasks'}
   // ----------------------------------------
   // PROTOCOL
   // ----------------------------------------
@@ -1168,9 +924,10 @@ function task_explorer (opts, protocol) {
     'handle_export': handle_export
   }
   const on_add = {
-    'inputs': add_node_input,
-    'outputs': add_node_output,
-    'tasks': add_node_sub
+    'input': add_node_io,
+    'output': add_node_io,
+    'link': add_node_link,
+    'task': add_node_sub,
   }
   const channel_up = use_protocol('up')({ protocol, state, on })
 
@@ -1188,11 +945,14 @@ function task_explorer (opts, protocol) {
         <div>Edit</div>
         <div>Drop</div>
       </div>
+      <style>
+      </style>
     </div>
     `
   // ----------------------------------------
   const tree_el = shadow.querySelector('main')
   const popup = shadow.querySelector('.popup')
+  const styles = shadow.querySelector('style')
   // ----------------------------------------
   // ELEMENTS
   // ----------------------------------------
@@ -1210,48 +970,58 @@ function task_explorer (opts, protocol) {
   // INIT
   // ----------------------------------------
   let json_data
-  const channel = state.net[state.aka.taskdb]
-  channel.send({
-    head: [id, channel.send.id, channel.mid++],
-    type: 'get',
-    data: '/'
+  fetch("./data.json")
+  .then(res => res.json())
+  .then(data =>{
+    json_data = data
+    fill_tree_el()
   })
-  if(query_result)
-    json_data = query_result
-  else{
-    json_data = JSON.parse(JSON.stringify(require('./data.json')))
-    channel.send({
-      head: [id, channel.send.id, channel.mid++],
-      type: 'set',
-      data: json_data
-    })
-  }
+  // const channel = state.net[state.aka.taskdb]
+  // channel.send({
+  //   head: [id, channel.send.id, channel.mid++],
+  //   type: 'get',
+  //   data: '/'
+  // })
+  // if(query_result)
+  //   json_data = query_result
+  // else{
+  //   json_data = JSON.parse(JSON.stringify(require('./data.json')))
+  //   channel.send({
+  //     head: [id, channel.send.id, channel.mid++],
+  //     type: 'set',
+  //     data: json_data
+  //   })
+  // }
 
-  fill_tree_el()
   return el
 
   async function fill_tree_el () {
     const root_nodes = json_data.filter(data => data.root)
     const length = root_nodes.length - 1
-    tree_el.append(...root_nodes.map((data, i) => add_node_root({ data, last: i === length })))
+    root_nodes.forEach((data, i) => tree_el.append(...add_node_root({ data, last: i === length })))
   }
-  function add_node_el ({ data, parent, space, super_last, type }){
+  function create_node (type, id, classes) {
+    const element = document.createElement('div')
+    element.classList.add(type, 'node', ...classes)
+    element.tabIndex = '0'
+    element.id = 'a'+id
+    return element
+  }
+  function add_node_el ({ data, parent, space, super_last, type, classes }){
     const check = parent.children.length ? false : true
     if(data.root){
-      parent.prepend(add_node_root({ data, last: false}))
+      parent.prepend(...add_node_root({ data, last: false}))
       return
     }
+    console.error(type)
     if(type === 'inputs')
-      parent.append(on_add[type]({ data, space, super_last, first: check}))
+      parent.append(...on_add[type]({ data, space, super_last, first: check, classes}))
     else
-      parent.prepend(on_add[type]({ data, space, super_last, last: check}))
+      parent.after(...on_add[type]({ data, space, super_last, last: check, classes}))
 
   }
   function add_node_root ({ data, last }) {
-    const element = document.createElement('div')
-    element.classList.add(data.type, 'node')
-    element.tabIndex = '0'
-    element.id = 'a'+data.id
+    const element = create_node(data.type, data.id, [])
     const space = ''
     element.dataset.space = space
     element.dataset.super_last = last ? 'a' : ''
@@ -1260,13 +1030,11 @@ function task_explorer (opts, protocol) {
       <div class="task_name">
         ${last ? '└' : '├'}<span class="tas">📓─</span>${data.name}<span class="last">...</span>
       </div>
-      <div class="tasks nodes">
-      </div>
     `
     const sub = element.querySelector('.task_name > .tas')
     const last_el = element.querySelector('.task_name > .last')
-    const tasks = element.querySelector('.tasks')
-    
+    const tasks = document.createElement('div')
+
     let sub_open
     sub.onclick = () => {
       if(sub_open){
@@ -1274,56 +1042,21 @@ function task_explorer (opts, protocol) {
       } else{
         sub.innerHTML = '📖┬'
       }
-      sub_open = !sub_open
-      tasks.classList.toggle('show')
-      if(data.tasks && tasks.children.length < 1){
-        length = data.tasks.length - 1
-        data.tasks.forEach((value, i) => data.type === 'io' ? add_node_link(json_data[value]) : tasks.append(add_node_sub({ data: json_data[value], last: length === i, super_last: last, space })))
-      }
+      sub_open = handle_click({ el: tasks, type: 'task', data: data.tasks, space, check: sub_open, super_last: last, pos: false, classes: '', parent_id: data.id })
     }
-    element.onfocus = () => {
-      selected_task = element
-      selected_task.classList.add('focus')
-      selected_task.addEventListener('blur', e => {
-        if(e.relatedTarget && e.relatedTarget.classList.contains('noblur'))
-          return
-        selected_task.classList.remove('focus')
-        selected_task = undefined
-      }, { once: true })
-    }
-    last_el.onclick = () => {
-      last_el.classList.add('show')
-      popup.style.top = last_el.offsetTop - 20 + 'px'
-      popup.style.left = last_el.offsetLeft - 56 + 'px'
-      popup.focus()
-      popup.addEventListener('blur', () => {
-        last_el.classList.remove('show')
-      }, { once: true })
-    }
-    return element
+    element.onfocus = node_onfocus
+    last_el.onclick = handle_popup
+    return [element, tasks]
   }
-  function add_node_sub ({ data, last, super_last, space }) {
-    const element = document.createElement('div')
-    element.classList.add(data.type, 'node')
-    element.id = 'a'+data.id
-    element.tabIndex = '0'
-
+  function add_node_sub ({ data, last, super_last, space, classes }) {
+    const element = create_node(data.type, data.id, classes)
     if(!data.root)
       space += super_last ? '&emsp;&emsp;' : '│&emsp;&nbsp;'
     element.dataset.space = space
     element.dataset.super_last = last ? 'a' : ''
-
     element.innerHTML = `
-      <div class="super nodes">
-      </div>
-      <div class="inputs nodes">
-      </div>
       <div class="task_name">
         ${space}${last ? '└' : '├'}<span class="sup">📪</span><span class="tas">─📪</span><span class="inp">🗃</span><span class="out">─🗃</span><span class="name">${data.name}</span><span class="last">...</span>
-      </div>
-      <div class="outputs nodes">
-      </div>
-      <div class="tasks nodes">
       </div>
     `
     const task_name = element.querySelector('.task_name > .name')
@@ -1333,39 +1066,61 @@ function task_explorer (opts, protocol) {
     const out = element.querySelector('.task_name > .out')
     const last_el = element.querySelector('.task_name > .last')
     // const after = element.querySelector('.task_name > .after')
-    const sup_tasks = element.querySelector('.super')
-    const outputs = element.querySelector('.outputs')
-    const inputs = element.querySelector('.inputs')
-    const tasks = element.querySelector('.tasks')
+    const sup_tasks = document.createElement('div')
+    sup_tasks.classList.add('sup_tasks'+data.id)
+    const outputs = document.createElement('div')
+    outputs.classList.add('outputs'+data.id)
+    const tasks = document.createElement('div')
+    tasks.classList.add('tasks'+data.id)
     
     let sup_open, sub_open, inp_open, out_open
     sup.onclick = () => {
       if(sup_open){
+        styles.innerHTML += `
+        .link.input${data.id}{
+          display: inline;
+        }
+        .not.link.input${data.id}{
+          display: none;
+        }`
         sup.innerHTML = '📪'
         sub_open ? sub.innerHTML = '┬'+sub.innerHTML.slice(1) : sub.innerHTML = '─'+sub.innerHTML.slice(1)
       } else{
+        styles.innerHTML += `
+        .link.input${data.id}{
+          display: none;
+        }
+        .not.link.input${data.id}{
+          display: inline;
+
+        }`
         sup.innerHTML = '📭'
         sub_open ? sub.innerHTML = '┼'+sub.innerHTML.slice(1) : sub.innerHTML = '┴'+sub.innerHTML.slice(1)
       }
-      sup_open = !sup_open
-      sup_tasks.classList.toggle('show')
-      if(data.sup && sup_tasks.children.length < 1){
-        length = data.sup.length - 1
-        data.sup.forEach((value, i) => sup_tasks.append(add_node_sup({ data: json_data[value], first: 0 === i, space })))
-      }
+      sup_open = handle_click({ el: sup_tasks, type: 'link', data: data.sup, space, check: sup_open, pos: true, classes: classes, parent_id: data.id, super_last: last })
     }
     sub.onclick = () => {
       if(sub_open){
+        styles.innerHTML += `
+        .link.output${data.id}{
+          display: inline;
+        }
+        .not.link.output${data.id}{
+          display: none;
+        }`
         sup_open ? sub.innerHTML = '┴📪' : sub.innerHTML = '─📪'
       } else{
+        styles.innerHTML += `
+        .link.output${data.id}{
+          display: none;
+        }
+        .not.link.output${data.id}{
+          display: inline;
+
+        }`
         sup_open ? sub.innerHTML = '┼📭' : sub.innerHTML = '┬📭'
       }
-      sub_open = !sub_open
-      tasks.classList.toggle('show')
-      if(data.tasks && tasks.children.length < 1){
-        length = data.tasks.length - 1
-        data.tasks.forEach((value, i) => data.type === 'io' ? add_node_link(json_data[value]) : tasks.append(add_node_sub({ data: json_data[value], last: length === i, super_last: last, space })))
-      }
+      sub_open = handle_click({ el: tasks, type: 'task', data: data.tasks, space, check: sub_open, super_last: last, pos: false, classes: classes, parent_id: data.id })
     }
     inp.onclick = () => {
       if(inp_open){
@@ -1375,12 +1130,8 @@ function task_explorer (opts, protocol) {
         inp.innerHTML = '🗂'
         out_open ? out.innerHTML = '┼'+out.innerHTML.slice(1) : out.innerHTML = '┴'+out.innerHTML.slice(1)
       }
-      inp_open = !inp_open
-      inputs.classList.toggle('show')
-      if(data.inputs && inputs.children.length < 1){
-        length = data.inputs.length - 1
-        data.inputs.forEach((value, i) => inputs.append(add_node_input({ data: json_data[value], first: 0 === i, space })))
-      }
+      const space_copy = space + `│&emsp;<span class="not link input${data.id}">&nbsp;│</span><span class="link input${data.id}">&emsp;</span>&emsp;&emsp;&ensp;`
+      inp_open = handle_click({ el: element, type: 'input', data: data.inputs, space: space_copy, check: inp_open, pos: true, classes: classes, parent_id: data.id })
     }
     out.onclick = () => {
       if(out_open){
@@ -1388,33 +1139,12 @@ function task_explorer (opts, protocol) {
       } else{
         inp_open ? out.innerHTML = '┼🗂' : out.innerHTML = '┬🗂'
       }
-      out_open = !out_open
-      outputs.classList.toggle('show')
-      if(data.outputs && outputs.children.length < 1){
-        length = data.outputs.length - 1
-        data.outputs.forEach((value, i) => outputs.append(add_node_output({ data: json_data[value], last: length === i, space })))
-      }
+      const space_copy = space + `${last ? '&ensp;&nbsp;' : '│'}&emsp;<span class="not link output${data.id}">&nbsp;│</span><span class="link output${data.id}">&emsp;</span>&emsp;&emsp;&ensp;`
+      out_open = handle_click({ el: outputs, type: 'output', data: data.outputs, space: space_copy, check: out_open, pos: false, classes: classes, parent_id: data.id })
     }
-    element.onfocus = () => {
-      selected_task = element
-      selected_task.classList.add('focus')
-      selected_task.addEventListener('blur', e => {
-        if(e.relatedTarget && e.relatedTarget.classList.contains('noblur'))
-          return
-        selected_task.classList.remove('focus')
-        selected_task = undefined
-      }, { once: true })
-    }
+    element.onfocus = node_onfocus
     task_name.onclick = open_chat
-    last_el.onclick = () => {
-      last_el.classList.add('show')
-      popup.style.top = last_el.offsetTop - 20 + 'px'
-      popup.style.left = last_el.offsetLeft - 56 + 'px'
-      popup.focus()
-      popup.addEventListener('blur', () => {
-        last_el.classList.remove('show')
-      }, { once: true })
-    }
+    last_el.onclick = handle_popup
     // after.onclick = () => {
     //   alert(host+'-'+data.id)
     //   try{
@@ -1424,74 +1154,134 @@ function task_explorer (opts, protocol) {
 
     //   }
     // }
-    return element
+    return [sup_tasks, element, outputs, tasks]
   }
-  function add_node_sup ({ data, first, space }) {
-    const element = document.createElement('div')
-    element.classList.add(data.type, 'node')
-    element.tabIndex = '0'
-    element.id = 'a'+data.id
-    space += '│&emsp;&nbsp;'
+  function add_node_io ({ data, first, last, space, classes }) {
+    const element = create_node(data.type, data.id, classes)
     element.innerHTML = `
     <div class="task_name">
-      ${space}${first ? '┌' : '├'}</span><span>📭─</span>${data.name}<span class="after">🔗</span>
-    </div>
-    `
-    return element
-  }
-  function add_node_input ({ data, first, space }) {
-    console.error(data)
-    const element = document.createElement('div')
-    element.classList.add(data.type, 'node')
-    element.tabIndex = '0'
-    element.id = 'a'+data.id
-    const space_sup = space + '│&emsp;&nbsp;│&emsp;&emsp;&ensp;'
-    space += '│&emsp;&emsp;&emsp;&emsp;&ensp;'
-    element.innerHTML = `
-    <div class="task_name">
-      <span class="space">${space}</span><span class="space_sup">${space_sup}</span>${first ? '┌' : '├'}</span><span class="btn">📥─</span>${data.name}<span class="after">🔗</span>
-    </div>
-    <div class="tasks nodes">
-    </div>
-    `
+     ${space}${first ? '┌' : last ? '└' : '├'}</span><span class="btn">📥─</span>${data.name}<span class="after">🔗</span>
+    </div>`
     const btn = element.querySelector('.task_name > .btn')
-    const tasks = element.querySelector('.tasks')
-    btn.onclick = () => {
-      tasks.classList.toggle('show')
-      if(data.tasks && tasks.children.length < 1){
-        length = data.tasks.length - 1
-        data.tasks.forEach((value, i) => tasks.append(add_node_link({ data: json_data[value], last: length === i, space })))
-      }
-    }
-    return element
+    const tasks = document.createElement('div')
+    let check
+    btn.onclick = () => check = handle_click({ el: tasks, type: 'link', data: data.tasks, space, check, pos: false, classes, parent_id: data.id, super_last: last })
+    return [element, tasks]
   }
-  function add_node_output ({ data, last, space }) {
+  function add_node_link ({ data, first, last, space, classes, super_last }) {
     const element = document.createElement('div')
-    element.classList.add(data.type, 'node')
-    element.tabIndex = '0'
-    element.id = 'a'+data.id
-    const space_sup = space + '│&emsp;&nbsp;│&emsp;&emsp;&ensp;'
-    space += '│&emsp;&emsp;&emsp;&emsp;&ensp;'
-    element.innerHTML = `
-    <div class="task_name">
-      <span class="space">${space}</span><span class="space_sup">${space_sup}</span>${last ? '└' : '├'}</span><span>📥─</span>${data.name}<span class="after">🔗</span>
-    </div>
-    `
-    return element
-  }
-  function add_node_link ({ data, last, space }) {
-    const element = document.createElement('div')
-    element.classList.add('next', 'node')
+    element.classList.add('link', 'node', ...classes)
     element.dataset.id = data.id
-    space += '│&emsp;&nbsp;'
-    console.error(data)
+    space += super_last ? '&emsp;&emsp;' : '│&emsp;&nbsp;'
     element.innerHTML = `
       <div class="task_name">
-        ${space}${last ? '└' : '├'}${data.name}
+        ${space}${last ? '└' : first ? '┌' : '├'} ${data.name}
       </div>`
     element.onclick = jump
     
-    return element
+    return [element]
+  }
+  function node_onfocus (e) {
+    selected_task = e.target
+    selected_task.classList.add('focus')
+    selected_task.addEventListener('blur', e => {
+      if(e.relatedTarget && e.relatedTarget.classList.contains('noblur'))
+        return
+      selected_task.classList.remove('focus')
+      selected_task = undefined
+    }, { once: true })
+  }
+  function handle_popup (e) {
+    const el = e.target
+    el.classList.add('show')
+    popup.style.top = el.offsetTop - 20 + 'px'
+    popup.style.left = el.offsetLeft - 56 + 'px'
+    popup.focus()
+    popup.addEventListener('blur', () => {
+      el.classList.remove('show')
+    }, { once: true })
+  }
+  function handle_click ({ el, type, data, space, check, super_last, pos, classes, parent_id }) {
+    classes = [...classes, type+parent_id]
+    if(data){
+      const selector = '.'+type+parent_id
+      //hide subnodes
+      if(check)
+        styles.innerHTML += `
+          ${selector}{
+            display: none;
+          }
+        `
+      //show subnodes
+      else if(tree_el.querySelector(selector))
+        styles.innerHTML += `
+          ${selector}{
+            display: block;
+          }
+        `
+      //make subnodes
+      else{
+        length = data.length - 1
+        data.forEach((value, i) => el.before(...on_add[type]({ data: json_data[value], first: pos ? 0 === i : false, last: pos ? false : length === i, space, super_last, classes })))
+      }
+    }
+    return !check
+  }
+  async function handle_export () {
+    const data = await traverse( selected_task.id.slice(1) )
+    const json_string = JSON.stringify(data, null, 2);
+    const blob = new Blob([json_string], { type: 'application/json' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'data.json';
+    link.click();
+  }
+  async function handle_add (data) {
+    data = data.slice(2).trim().toLowerCase()
+    const input = document.createElement('input')
+    let node, classes, task_id, space = '', super_last = true, root = true
+    if(selected_task){
+      task_id = selected_task.id.slice(1)
+      classes = Array(...selected_task.classList)
+      classes.pop()
+      node = selected_task
+      console.error(add_words[data] + task_id)
+      const before = selected_task.querySelector('.' + data.slice(0,3))
+      before.dispatchEvent(new MouseEvent('click', {bubbles:true, cancelable: true, view: window}))
+      super_last = selected_task.dataset.super_last
+      space = selected_task.dataset.space
+      selected_task.classList.remove('focus')
+      selected_task = undefined
+      root = false
+      node.after(input)
+    }
+    else{
+      node = tree_el
+      task_id = ''
+      node.prepend(input)
+    }
+    input.onkeydown = async (event) => {
+      if (event.key === 'Enter') {
+        input.blur()
+        add_node_el({ data : { name: input.value, id: json_data.length, type: code_words[data], root }, space, super_last, type: data, parent: node, classes })
+        const users = task_id ? json_data[task_id].users : [host]
+        add_node_data(input.value, data, task_id, users)
+        if(users.length > 1)
+          channel_up.send({
+            head: [id, channel_up.send.id, channel_up.mid++],
+            type: 'send',
+            data: {to: 'task_explorer', route: ['up', 'task_explorer'], users: json_data[task_id].users.filter(user => user !== host), type: 'on_add_node', data: {name: input.value, id: task_id, type: data, users, super_last, space} }
+          })
+        if(chat_task && task_id === chat_task.id.slice(1))
+          channel_up.send({
+            head: [id, channel_up.send.id, channel_up.mid++],
+            type: 'post_msg',
+            data: {username: 'system', content: host+' added '+data.slice(0, -1)+': '+input.value}
+          })
+      }
+    }
+    input.focus()
+    input.onblur = () => input.remove()
   }
   async function jump (e){
     let target_id = e.currentTarget.dataset.id
@@ -1499,12 +1289,9 @@ function task_explorer (opts, protocol) {
     if(el)
       el.focus()
     else{
-      let temp = json_data[target_id]
       const path = []
-      while(!temp.root){
+      for(let temp = json_data[target_id]; !temp.root; temp = json_data[temp.parent])
         path.push(temp.id)
-        temp = json_data[temp.parent]
-      }
       temp = tree_el.querySelector('#a'+temp.id)
       target_id = 'a'+target_id
       while(temp.id !== target_id){
@@ -1528,21 +1315,12 @@ function task_explorer (opts, protocol) {
       return
     result.push(json_data[id])
     track.push(id)
-    temp = 0
-    while(json_data[id].tasks && temp < json_data[id].tasks.length){
+    for(temp = 0; json_data[id].tasks && temp < json_data[id].tasks.length; temp++)
       recurse(json_data[id].tasks[temp])
-      temp++
-    }
-    temp = 0
-    while(json_data[id].inputs && temp < json_data[id].inputs.length){
+    for(temp = 0; json_data[id].inputs && temp < json_data[id].inputs.length; temp++)
       recurse(json_data[id].inputs[temp])
-      temp++
-    }
-    temp = 0
-    while(json_data[id].outputs && temp < json_data[id].outputs.length){
+    for(temp = 0; json_data[id].outputs && temp < json_data[id].outputs.length; temp++)
       recurse(json_data[id].outputs[temp])
-      temp++
-    }
   }
   async function add_node_data (name, type, parent_id, users){
     const node_id = json_data.length
@@ -1555,7 +1333,6 @@ function task_explorer (opts, protocol) {
     else{
       json_data[node_id].root = true
       json_data[node_id].users = [opts.host]
-      console.error(json_data[node_id])
     }
     const channel = state.net[state.aka.taskdb]
     channel.send({
@@ -1568,60 +1345,6 @@ function task_explorer (opts, protocol) {
     const node = data.id ? shadow.querySelector('#a' + data.id + ' > .'+data.type) : tree_el
     node.children.length && add_node_el({ data: { name: data.name, id: json_data.length, type: code_words[data.type] }, parent: node, super_last: data.super_last, type: data.type, space: data.space })
     add_node_data(data.name, data.type, data.id, data.users.push(host))
-  }
-  async function handle_export () {
-    const data = await traverse( selected_task.id.slice(1) )
-    const json_string = JSON.stringify(data, null, 2);
-    const blob = new Blob([json_string], { type: 'application/json' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = 'data.json';
-    link.click();
-  }
-  async function handle_add (data) {
-    data = data.slice(2).trim().toLowerCase() + 's'
-    const input = document.createElement('input')
-    let node, task_id, space = '', super_last = true, root = true
-    if(selected_task){
-      node = selected_task.querySelector('.' + data)
-      task_id = selected_task.id.slice(1)
-      const before = selected_task.querySelector('.' + data.slice(0,3))
-      before.dispatchEvent(new MouseEvent('click', {bubbles:true, cancelable: true, view: window}))
-      node.classList.add('show')
-      super_last = selected_task.dataset.super_last
-      space = selected_task.dataset.space
-      console.error(space, super_last)
-      selected_task.classList.remove('focus')
-      selected_task = undefined
-      root = false
-    }
-    else{
-      node = tree_el
-      task_id = ''
-    }
-    node.prepend(input)
-    input.onkeydown = async (event) => {
-      if (event.key === 'Enter') {
-        node.firstElementChild.remove()
-        add_node_el({ data : { name: input.value, id: json_data.length, type: code_words[data], root }, space, super_last, type: data, parent: node })
-        const users = task_id ? json_data[task_id].users : [host]
-        add_node_data(input.value, data, task_id, users)
-        if(task_id && json_data[task_id].users.length > 1)
-          channel_up.send({
-            head: [id, channel_up.send.id, channel_up.mid++],
-            type: 'send',
-            data: {to: 'task_explorer', route: ['up', 'task_explorer'], users: json_data[task_id].users.filter(user => user !== host), type: 'on_add_node', data: {name: input.value, id: task_id, type: data, users, super_last, space} }
-          })
-        if(chat_task && task_id === chat_task.id.slice(1))
-          channel_up.send({
-            head: [id, channel_up.send.id, channel_up.mid++],
-            type: 'post_msg',
-            data: {username: 'system', content: host+' added '+data.slice(0, -1)+': '+input.value}
-          })
-      }
-    }
-    input.focus()
-    input.onblur = () => node.firstElementChild.remove()
   }
   async function send ({ data }) {
     const {to, route} = data
@@ -1657,7 +1380,6 @@ function task_explorer (opts, protocol) {
   }
   async function handle_invite ({ sender, task_id }) {
     const node = json_data[Number(task_id)]
-    console.error(task_id, json_data)
     node.users.push(sender)
     channel_up.send({
       head: [id, channel_up.send.id, channel_up.mid++],
@@ -1687,7 +1409,7 @@ function get_theme () {
     position: relative;
     min-width: fit-content;
   }
-  .task{
+  .node{
     cursor: pointer;
     margin: 5px 0;
   }
@@ -1702,14 +1424,6 @@ function get_theme () {
     background-color: #222;
   }
   .io > .task_name > .space_sup{
-    display: none;
-  }
-  .super.show + .inputs > .io > .task_name > .space_sup,
-  .outputs:has(+ .tasks.show) > .io > .task_name > .space_sup{
-    display: inline;
-  }
-  .super.show + .inputs > .io > .task_name > .space,
-  .outputs:has(+ .tasks.show) > .io > .task_name > .space{
     display: none;
   }
   .task_name{
@@ -1750,6 +1464,9 @@ function get_theme () {
   .popup > div:hover{
     background-color: #555;
   }
+  .not{
+    display: none;
+  }
   `
 }
 function use_protocol (petname) {
@@ -1780,7 +1497,7 @@ function use_protocol (petname) {
 }
 
 }).call(this)}).call(this,require('_process'),"/src/node_modules/task_explorer/task_explorer.js")
-},{"./data.json":5,"_process":2,"taskdb":7}],7:[function(require,module,exports){
+},{"_process":2,"taskdb":6}],6:[function(require,module,exports){
 (function (process,__filename){(function (){
 // MODULE STATE & ID
 var count = 0
