@@ -21,14 +21,13 @@ async function task_messenger (opts, protocol) {
   const status = {}
   const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {} } // all state of component instance
   const name = 'task_messenger'
-  let users = opts.users.filter(username => username!==opts.username)
-  const username = opts.username
-  let chat
+  state.users = opts.users.filter(username => username!==opts.username)
+  state.username = opts.username
   // ----------------------------------------
   // PROTOCOL
   // ----------------------------------------
   const on = {
-    'on_post_msg': on_post_msg,
+    'on_rx': on_rx,
     'send': send
   }
   const channel_up = use_protocol('up')({ protocol, state, on })
@@ -48,6 +47,10 @@ async function task_messenger (opts, protocol) {
           <div class="history">
           </div>
         </div>
+        <div class="explorer_box">
+        </div>
+        <div class="input_box">
+        </div>
       </div>
       <div class="footer">
         <div class="title">
@@ -62,7 +65,8 @@ async function task_messenger (opts, protocol) {
     </div>
   `
   // ----------------------------------------
-  const container = shadow.querySelector('.container')
+  const explorer_box = shadow.querySelector('.explorer_box').attachShadow(shopts)
+  const input_box = shadow.querySelector('.input_box').attachShadow(shopts)
   const history = shadow.querySelector('.history')
   const footer = shadow.querySelector('.footer')
   // ----------------------------------------
@@ -72,79 +76,53 @@ async function task_messenger (opts, protocol) {
     const on = {
       send,
       open_chat,
-      post_msg,
+      on_tx,
     }
     const protocol = use_protocol('task_explorer')({ state, on })
-    const element = task_explorer(opts = { users, host: username }, protocol)
-    container.append(element)
+    const element = task_explorer(opts = { users: state.users, host: state.username }, protocol)
+    explorer_box.append(element)
   }
   {//chat input
     const on = {
       send,
-      post_msg,
+      on_tx,
     }
     const protocol = use_protocol('chat_input')({ state, on })
-    const element = await chat_input(opts = { users, host: username }, protocol)
-    container.append(element)
+    const element = await chat_input(opts = { users: state.users, host: state.username }, protocol)
+    input_box.append(element)
   }
   // ----------------------------------------
   // INIT
   // ----------------------------------------
   return el
-  async function post_msg ({ data }) {
-    const {content, username} = data
-    const element = document.createElement('div')
-    element.classList.add('msg', 'right')
-    if(username === 'system'){
-      element.classList.add('system')
-      element.innerHTML = content
-    }
-    else
-      element.innerHTML = `
-          <div class='username'>
-            ${username}
-          </div>
-          ${content}`
-    history.append(element)
-
+  async function on_tx ({ data }) {
+    render_msg(data)
+    
     const channel = state.net[state.aka.task_explorer]
     channel.send({
       head: [id, channel.send.id, channel.mid++],
-      type: 'post_msg',
-      data: {content, username, chat_id: chat.id}
+      type: 'on_tx',
+      data: {content: data.content, username: state.username, chat_id: state.chat.id}
     })
     channel_up.send({
       head: [id, channel_up.send.id, channel_up.mid++],
       type: 'send',
-      data: {from: username, users, to: 'task_messenger', type: 'on_post_msg', data_re: {content: content, chat_id: chat.id}}
+      data: {from: state.username, users: state.users, to: 'task_messenger', type: 'on_rx', data_re: {content: data.content, chat_id: state.chat.id}}
     })
 
     history.scrollTop = history.scrollHeight
   }
-  async function on_post_msg (data) {
+  async function on_rx (data) {
     const { from, data_re } = data
     const { content, chat_id } = data_re
     const channel = state.net[state.aka.task_explorer]
     channel.send({
       head: [id, channel.send.id, channel.mid++],
-      type: 'post_msg',
+      type: 'on_tx',
       data: {content, username: from, chat_id}
     })
-    if(chat && chat_id === chat.id){
-      const element = document.createElement('div')
-      element.classList.add('msg')
-      if(from === 'system'){
-        element.classList.add('system')
-        element.innerHTML = content
-      }
-      else
-        element.innerHTML = `
-            <div class='username'>
-              ${from}
-            </div>
-            ${content}`
-      history.append(element)  
-    }
+    if(state.chat && chat_id === state.chat.id)
+      render_msg({ username: from, content })
     history.scrollTop = history.scrollHeight
   }
   async function send ({ data }) {
@@ -162,31 +140,29 @@ async function task_messenger (opts, protocol) {
     })
   }
   async function open_chat ({ data }){
-    chat = {data: data.chat, id: data.id}
+    state.chat = {data: data.room, id: data.id}
     history.innerHTML = ''
-    chat.data.forEach(msg => {
-      const element = document.createElement('div')
-      element.classList.add('msg')
-      if(msg.username === 'system'){
-        element.classList.add('system')
-        element.innerHTML = msg.content
-      }
-      else{
-        msg.username === username && element.classList.add('right')
-        element.innerHTML = `
-          <div class='username'>
-            ${msg.username}
-          </div>
-          ${msg.content}`
-      }
-      history.append(element)
-    })
+    chatroom = []
+    for(entry of Object.entries(state.chat.data)){
+      entry[1].forEach(value => {
+        chatroom.push({
+          username: entry[0] ? entry[0] : state.username,
+          content: value.data,
+          date: value.meta.data
+        })
+      })
+    }
+    chatroom.sort((a, b) => a.date - b.date)
+    chatroom.forEach(render_msg)
     const channel = state.net[state.aka.chat_input]
     channel.send({
       head: [id, channel.send.id, channel.mid++],
       type: 'activate_input',
       data: 'Type a message'
     })
+    update_status(data)
+  }
+  async function update_status (data) {
     const title = footer.querySelector('.title')
     title.innerHTML = data.name
     const input = footer.querySelector('.input')
@@ -194,8 +170,24 @@ async function task_messenger (opts, protocol) {
     const output = footer.querySelector('.output')
     output.innerHTML = `Outputs: ${data.outputs ? data.outputs.length : '0'}`
     const task = footer.querySelector('.task')
-    task.innerHTML = `Tasks: ${data.tasks ? data.tasks.length : '0'}`
-    
+    task.innerHTML = `Tasks: ${data.sub ? data.sub.length : '0'}`
+  }
+  async function render_msg (msg){
+    const element = document.createElement('div')
+      element.classList.add('msg')
+      if(msg.username === 'system'){
+        element.classList.add('system')
+        element.innerHTML = msg.content
+      }
+      else{
+        msg.username === state.username && element.classList.add('right')
+        element.innerHTML = `
+          <div class='username'>
+            ${msg.username}
+          </div>
+          ${msg.content}`
+      }
+      history.append(element)
   }
 }
 function get_theme () {
