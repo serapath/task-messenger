@@ -8,7 +8,7 @@
       "name": "roadmap",
       "type": "task",
       "root": true,
-      "tasks": [
+      "sub": [
           1,
           2
       ]
@@ -21,25 +21,29 @@
       ],
       "name": "UI/UX design",
       "type": "task",
-      "tasks": [
+      "sub": [
           3,
           4
       ],
-      "sup": [0],
-      "chat": [
-        {
-            "username": "ana",
-            "content": "Hello"
-        },
-        {
-            "username": "bob",
-            "content": "Hello"
-        },
-        {
-            "username": "system",
-            "content": "Ana added task: UI/UX design"
-        }
-    ]
+      "hub": [0],
+      "room": {
+        "": [
+            {
+                "head": "",
+                "type": "",
+                "data": "Hi",
+                "meta": {"data": 1714473973882}
+            }
+        ],
+        "ana": [
+            {
+                "head": "",
+                "type": "",
+                "data": "Hello",
+                "meta": {"data": 1714473892250}
+            }
+        ]
+    }
   },
   {
       "id": 2,
@@ -49,11 +53,11 @@
       ],
       "name": "implementation",
       "type": "task",
-      "tasks": [
+      "sub": [
           5,
           6
       ],
-      "sup": [0],
+      "hub": [0],
       "chat": []
   },
   {
@@ -67,11 +71,11 @@
       "outputs": [
           7
       ],
-      "tasks": [
+      "sub": [
           8,
           10
       ],
-      "sup": [1],
+      "hub": [1],
       "chat": []
   },
   {
@@ -82,11 +86,11 @@
       ],
       "name": "design searchbar",
       "type": "task",
-      "tasks": [
+      "sub": [
           8,
           10
       ],
-      "sup": [1],
+      "hub": [1],
       "chat": []
   },
   {
@@ -107,10 +111,10 @@
           13,
           14
       ],
-      "tasks": [
+      "sub": [
           15
       ],
-      "sup": [2],
+      "hub": [2],
       "chat": []
   },
   {
@@ -121,7 +125,7 @@
       ],
       "name": "implement searchbar",
       "type": "task",
-      "sup": [2],
+      "hub": [2],
       "chat": []
   },
   {
@@ -132,11 +136,11 @@
       ],
       "name": "button repo",
       "type": "io",
-      "tasks": [
+      "sub": [
           5,
           6
       ],
-      "sup": [3],
+      "hub": [3],
       "chat": []
   },
   {
@@ -150,7 +154,7 @@
       "outputs": [
           9
       ],
-      "sup": [3],
+      "hub": [3],
       "chat": []
   },
   {
@@ -161,11 +165,11 @@
       ],
       "name": "button icon.svg",
       "type": "io",
-      "tasks": [
+      "sub": [
           5,
           6
       ],
-      "sup": [8],
+      "hub": [8],
       "chat": []
   },
   {
@@ -179,7 +183,7 @@
       "outputs": [
           11
       ],
-      "sup": [3],
+      "hub": [3],
       "chat": []
   },
   {
@@ -190,11 +194,11 @@
       ],
       "name": "button.fig",
       "type": "io",
-      "tasks": [
+      "sub": [
           5,
           6
       ],
-      "sup": [10],
+      "hub": [10],
       "chat": []
   },
   {
@@ -205,7 +209,7 @@
       ],
       "name": "button.js",
       "type": "io",
-      "sup": [5],
+      "hub": [5],
       "chat": []
   },
   {
@@ -216,7 +220,7 @@
       ],
       "name": "button.css",
       "type": "io",
-      "sup": [5],
+      "hub": [5],
       "chat": []
   },
   {
@@ -227,7 +231,7 @@
       ],
       "name": "button.html",
       "type": "io",
-      "sup": [5],
+      "hub": [5],
       "chat": []
   },
   {
@@ -238,7 +242,7 @@
       ],
       "name": "write button js, css, and html",
       "type": "task",
-      "sup": [5],
+      "hub": [5],
       "chat": []
   }
 ]
