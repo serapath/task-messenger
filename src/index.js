@@ -79,7 +79,8 @@ async function task_messenger (opts, protocol) {
       on_tx,
     }
     const protocol = use_protocol('task_explorer')({ state, on })
-    const element = task_explorer(opts = { users: state.users, host: state.username }, protocol)
+    const opts = { users: state.users, host: state.username }
+    const element = task_explorer(opts, protocol)
     explorer_box.append(element)
   }
   {//chat input
@@ -88,7 +89,8 @@ async function task_messenger (opts, protocol) {
       on_tx,
     }
     const protocol = use_protocol('chat_input')({ state, on })
-    const element = await chat_input(opts = { users: state.users, host: state.username }, protocol)
+    const opts = { users: state.users, host: state.username }
+    const element = await chat_input(opts, protocol)
     input_box.append(element)
   }
   // ----------------------------------------
