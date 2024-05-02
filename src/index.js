@@ -28,7 +28,7 @@ async function task_messenger (opts, protocol) {
   // ----------------------------------------
   const on = {
     'on_rx': on_rx,
-    'send': send
+    'send': send,
   }
   const channel_up = use_protocol('up')({ protocol, state, on })
   // ----------------------------------------
@@ -49,7 +49,7 @@ async function task_messenger (opts, protocol) {
         </div>
         <div class="explorer_box">
         </div>
-        <div class="input_box">
+        <div class="input_box noblur">
         </div>
       </div>
       <div class="footer">
@@ -77,9 +77,11 @@ async function task_messenger (opts, protocol) {
       send,
       open_chat,
       on_tx,
+      render_msg
     }
     const protocol = use_protocol('task_explorer')({ state, on })
-    const element = task_explorer(opts = { users: state.users, host: state.username }, protocol)
+    const opts = { users: state.users, host: state.username }
+    const element = task_explorer(opts, protocol)
     explorer_box.append(element)
   }
   {//chat input
@@ -88,7 +90,8 @@ async function task_messenger (opts, protocol) {
       on_tx,
     }
     const protocol = use_protocol('chat_input')({ state, on })
-    const element = await chat_input(opts = { users: state.users, host: state.username }, protocol)
+    const opts = { users: state.users, host: state.username }
+    const element = await chat_input(opts, protocol)
     input_box.append(element)
   }
   // ----------------------------------------
@@ -96,12 +99,12 @@ async function task_messenger (opts, protocol) {
   // ----------------------------------------
   return el
   async function on_tx ({ data }) {
-    render_msg(data)
+    render_msg({ data })
     
     const channel = state.net[state.aka.task_explorer]
     channel.send({
       head: [id, channel.send.id, channel.mid++],
-      type: 'on_tx',
+      type: 'save_msg',
       data: {content: data.content, username: state.username, chat_id: state.chat.id}
     })
     channel_up.send({
@@ -109,8 +112,6 @@ async function task_messenger (opts, protocol) {
       type: 'send',
       data: {from: state.username, users: state.users, to: 'task_messenger', type: 'on_rx', data_re: {content: data.content, chat_id: state.chat.id}}
     })
-
-    history.scrollTop = history.scrollHeight
   }
   async function on_rx (data) {
     const { from, data_re } = data
@@ -122,7 +123,7 @@ async function task_messenger (opts, protocol) {
       data: {content, username: from, chat_id}
     })
     if(state.chat && chat_id === state.chat.id)
-      render_msg({ username: from, content })
+      render_msg({ data: { username: from, content }})
     history.scrollTop = history.scrollHeight
   }
   async function send ({ data }) {
@@ -153,7 +154,7 @@ async function task_messenger (opts, protocol) {
       })
     }
     chatroom.sort((a, b) => a.date - b.date)
-    chatroom.forEach(render_msg)
+    chatroom.forEach(msg => render_msg({ data: msg }))
     const channel = state.net[state.aka.chat_input]
     channel.send({
       head: [id, channel.send.id, channel.mid++],
@@ -172,22 +173,23 @@ async function task_messenger (opts, protocol) {
     const task = footer.querySelector('.task')
     task.innerHTML = `Tasks: ${data.sub ? data.sub.length : '0'}`
   }
-  async function render_msg (msg){
+  async function render_msg ({ data }){
     const element = document.createElement('div')
       element.classList.add('msg')
-      if(msg.username === 'system'){
+      if(data.username === 'system'){
         element.classList.add('system')
-        element.innerHTML = msg.content
+        element.innerHTML = data.content
       }
       else{
-        msg.username === state.username && element.classList.add('right')
+        data.username === state.username && element.classList.add('right')
         element.innerHTML = `
           <div class='username'>
-            ${msg.username}
+            ${data.username}
           </div>
-          ${msg.content}`
+          ${data.content}`
       }
       history.append(element)
+    history.scrollTop = history.scrollHeight
   }
 }
 function get_theme () {
