@@ -119,7 +119,7 @@ async function task_messenger (opts, protocol) {
     const channel = state.net[state.aka.task_explorer]
     channel.send({
       head: [id, channel.send.id, channel.mid++],
-      type: 'on_tx',
+      type: 'save_msg',
       data: {content, username: from, chat_id}
     })
     if(state.chat && chat_id === state.chat.id)
@@ -146,10 +146,13 @@ async function task_messenger (opts, protocol) {
     chatroom = []
     for(entry of Object.entries(state.chat.data)){
       entry[1].forEach(value => {
+        const refs = value.refs.split('-')
         chatroom.push({
+          id: value.head.id,
           username: entry[0] ? entry[0] : state.username,
           content: value.data,
-          date: value.meta.data
+          date: value.meta.date,
+          refs: refs.length > 1 && state.chat.data[refs[0]][refs[1]]
         })
       })
     }
@@ -175,20 +178,38 @@ async function task_messenger (opts, protocol) {
   }
   async function render_msg ({ data }){
     const element = document.createElement('div')
-      element.classList.add('msg')
-      if(data.username === 'system'){
-        element.classList.add('system')
-        element.innerHTML = data.content
+    element.classList.add('msg')
+    element.id = data.id
+    
+    if(data.username === 'system'){
+      element.classList.add('system')
+      element.innerHTML = data.content
+    }
+    else{
+      data.username === state.username && element.classList.add('right')
+      element.innerHTML = `
+        <div class='username'>
+          ${data.username}
+        </div>
+        <div class='content'>
+        ${data.content}
+        </div>`
+        
+      if(data.refs){
+        const refs = document.createElement('div')
+        refs.classList.add('refs')
+        refs.innerHTML = `
+          ${data.refs.data}`
+        element.prepend(refs)
+        refs.onclick = () => {
+          const target = history.querySelector('#'+data.refs.head.id)
+          target.tabIndex = '0'
+          target.focus()
+          target.onblur = () => target.removeAttribute('tabindex')
+        }
       }
-      else{
-        data.username === state.username && element.classList.add('right')
-        element.innerHTML = `
-          <div class='username'>
-            ${data.username}
-          </div>
-          ${data.content}`
-      }
-      history.append(element)
+    }
+    history.append(element)
     history.scrollTop = history.scrollHeight
   }
 }
@@ -231,23 +252,40 @@ function get_theme () {
       overflow-y: scroll;
       max-height: 50px;
     }
-    .chat .msg{
+    .chat .msg > .content{
       background-color: #555;
-      margin: 10px;
       padding: 10px;
       border-radius: 6px;
       width: fit-content;
+      z-index: 1;
       position: relative;
     }
-    .chat .msg:first-child{
-      margin-top: auto;
+    .chat .msg{
+      position: relative;
+      margin: 10px;
     }
-    .chat .msg.right{
+    .chat .msg > .refs{
+      background-color: #555;
+      padding: 10px;
+      margin-bottom: -10px;
+      padding-bottom: 20px;
+      opacity: 0.5;
+      border-radius: 6px;
+      width: fit-content;
+      cursor: pointer;
+    }
+    .chat .msg.right > div{
       margin-left: auto;
+    }
+    .chat .msg:focus{
+      background-color: #33330f;
     }
     .chat .msg.system{
       margin: 0 auto;
       background: none;
+    }
+    .chat .msg:first-child{
+      margin-top: auto;
     }
     .chat .msg .username{
       position: absolute;
@@ -255,7 +293,7 @@ function get_theme () {
       font-size: 14px;
     }
     .chat .msg.right .username{
-      right: 10px;
+      right: 2px;
     }
     .footer{
       display: flex;
