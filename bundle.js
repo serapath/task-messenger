@@ -421,7 +421,7 @@ async function task_messenger (opts, protocol) {
     const channel = state.net[state.aka.task_explorer]
     channel.send({
       head: [id, channel.send.id, channel.mid++],
-      type: 'on_tx',
+      type: 'save_msg',
       data: {content, username: from, chat_id}
     })
     if(state.chat && chat_id === state.chat.id)
@@ -448,10 +448,13 @@ async function task_messenger (opts, protocol) {
     chatroom = []
     for(entry of Object.entries(state.chat.data)){
       entry[1].forEach(value => {
+        const refs = value.refs.split('-')
         chatroom.push({
+          id: value.head.id,
           username: entry[0] ? entry[0] : state.username,
           content: value.data,
-          date: value.meta.data
+          date: value.meta.date,
+          refs: refs.length > 1 && state.chat.data[refs[0]][refs[1]]
         })
       })
     }
@@ -477,20 +480,38 @@ async function task_messenger (opts, protocol) {
   }
   async function render_msg ({ data }){
     const element = document.createElement('div')
-      element.classList.add('msg')
-      if(data.username === 'system'){
-        element.classList.add('system')
-        element.innerHTML = data.content
+    element.classList.add('msg')
+    element.id = data.id
+    
+    if(data.username === 'system'){
+      element.classList.add('system')
+      element.innerHTML = data.content
+    }
+    else{
+      data.username === state.username && element.classList.add('right')
+      element.innerHTML = `
+        <div class='username'>
+          ${data.username}
+        </div>
+        <div class='content'>
+        ${data.content}
+        </div>`
+        
+      if(data.refs){
+        const refs = document.createElement('div')
+        refs.classList.add('refs')
+        refs.innerHTML = `
+          ${data.refs.data}`
+        element.prepend(refs)
+        refs.onclick = () => {
+          const target = history.querySelector('#'+data.refs.head.id)
+          target.tabIndex = '0'
+          target.focus()
+          target.onblur = () => target.removeAttribute('tabindex')
+        }
       }
-      else{
-        data.username === state.username && element.classList.add('right')
-        element.innerHTML = `
-          <div class='username'>
-            ${data.username}
-          </div>
-          ${data.content}`
-      }
-      history.append(element)
+    }
+    history.append(element)
     history.scrollTop = history.scrollHeight
   }
 }
@@ -533,23 +554,40 @@ function get_theme () {
       overflow-y: scroll;
       max-height: 50px;
     }
-    .chat .msg{
+    .chat .msg > .content{
       background-color: #555;
-      margin: 10px;
       padding: 10px;
       border-radius: 6px;
       width: fit-content;
+      z-index: 1;
       position: relative;
     }
-    .chat .msg:first-child{
-      margin-top: auto;
+    .chat .msg{
+      position: relative;
+      margin: 10px;
     }
-    .chat .msg.right{
+    .chat .msg > .refs{
+      background-color: #555;
+      padding: 10px;
+      margin-bottom: -10px;
+      padding-bottom: 20px;
+      opacity: 0.5;
+      border-radius: 6px;
+      width: fit-content;
+      cursor: pointer;
+    }
+    .chat .msg.right > div{
       margin-left: auto;
+    }
+    .chat .msg:focus{
+      background-color: #33330f;
     }
     .chat .msg.system{
       margin: 0 auto;
       background: none;
+    }
+    .chat .msg:first-child{
+      margin-top: auto;
     }
     .chat .msg .username{
       position: absolute;
@@ -557,7 +595,7 @@ function get_theme () {
       font-size: 14px;
     }
     .chat .msg.right .username{
-      right: 10px;
+      right: 2px;
     }
     .footer{
       display: flex;
@@ -616,7 +654,6 @@ async function chat_input (opts, protocol) {
   const id = `${ID}:${count++}` // assigns their own name
   const status = {}
   const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {} } // all state of component instance
-  const name = 'chat_input'
   state.shift_status = true
   state.textmode = "msg"
   state.username = opts.host
@@ -1003,61 +1040,64 @@ function task_explorer (opts, protocol) {
     element.id = 'a'+id
     return element
   }
+  function html_template (data, last, space, grand_last){
+    const element = create_node(data.type, data.id)
+    if(data.root)
+      space = ''
+    else
+      space += grand_last ? '&emsp;&emsp;' : '│&emsp;&nbsp;'
+    element.dataset.space = space
+    element.dataset.grand_last = last ? 'a' : ''
+
+    return [element, last, space]
+  }
   /******************************************
    Addition Operation
   ******************************************/
   function add_node_el ({ data, parent, space, grand_last, type }){
-    const is_first_and_last = parent.children.length ? false : true
+    const is_single = parent.children.length ? false : true
     if(data.root){
       parent.prepend(add_node_root({ data, last: false}))
       return
     }
     //hub or sub node check
     if(type === 'inputs')
-      parent.append(on_add[type]({ data, space, grand_last, first: is_first_and_last}))
+      parent.append(on_add[type]({ data, space, grand_last, first: is_single}))
     else
-      parent.prepend(on_add[type]({ data, space, grand_last, last: is_first_and_last}))
+      parent.prepend(on_add[type]({ data, space, grand_last, last: is_single}))
 
   }
   function add_node_root ({ data, last }) {
-    const element = create_node(data.type, data.id)
-    const space = ''
-    element.dataset.space = space
-    element.dataset.grand_last = last ? 'a' : ''
-
+    [ element, last, space ] = html_template(data, last)
     element.innerHTML = `
-      <div class="task_name">
+      <div class="details">
         ${last ? '└' : '├'}<span class="tas">📓─</span>${data.name}<span class="last">...</span>
       </div>
       <div class="tasks nodes">
       </div>
     `
-    const sub_emo = element.querySelector('.task_name > .tas')
-    const last_el = element.querySelector('.task_name > .last')
+    const sub_emo = element.querySelector('.details > .tas')
+    const last_el = element.querySelector('.details > .last')
     const tasks = element.querySelector('.tasks')
     
     let is_on
-    sub_emo.onclick = () => {
-      sub_emo.innerHTML = is_on ? '📓─' : '📖┬'  
-      is_on = handle_click({ el: tasks, type: 'tasks', data: data.sub, space, is_on, grand_last: last, pos: false })
-    }
+    sub_emo.onclick = sub_click
     element.onfocus = handle_focus
     last_el.onclick = handle_popup
     return element
+    function sub_click () {
+      sub_emo.innerHTML = is_on ? '📓─' : '📖┬'  
+      is_on = handle_click({ el: tasks, type: 'tasks', data: data.sub, space, is_on, grand_last: last, pos: false })
+    }
   }
   function add_node_sub ({ data, last, grand_last, space }) {
-    const element = create_node(data.type, data.id)
-    if(!data.root)
-      space += grand_last ? '&emsp;&emsp;' : '│&emsp;&nbsp;'
-    element.dataset.space = space
-    element.dataset.grand_last = last ? 'a' : ''
-
+    [ element, last, space ] = html_template(data, last, space, grand_last)
     element.innerHTML = `
       <div class="hub nodes">
       </div>
       <div class="inputs nodes">
       </div>
-      <div class="task_name">
+      <div class="details">
         ${space}${last ? '└' : '├'}<span class="hub_emo">📪</span><span class="tas">─📪</span><span class="inp">🗃</span><span class="out">─🗃</span><span class="name">${data.name}</span><span class="last">...</span>
       </div>
       <div class="outputs nodes">
@@ -1065,57 +1105,25 @@ function task_explorer (opts, protocol) {
       <div class="tasks nodes">
       </div>
     `
-    const task_name = element.querySelector('.task_name > .name')
-    const hub_emo = element.querySelector('.task_name > .hub_emo')
-    const sub_emo = element.querySelector('.task_name > .tas')
-    const inp = element.querySelector('.task_name > .inp')
-    const out = element.querySelector('.task_name > .out')
-    const last_el = element.querySelector('.task_name > .last')
-    // const after = element.querySelector('.task_name > .after')
+    const details = element.querySelector('.details > .name')
+    const hub_emo = element.querySelector('.details > .hub_emo')
+    const sub_emo = element.querySelector('.details > .tas')
+    const inp = element.querySelector('.details > .inp')
+    const out = element.querySelector('.details > .out')
+    const last_el = element.querySelector('.details > .last')
+    // const after = element.querySelector('.details > .after')
     const hub = element.querySelector('.hub')
     const outputs = element.querySelector('.outputs')
     const inputs = element.querySelector('.inputs')
     const tasks = element.querySelector('.tasks')
     
     let hub_on, sub_on, inp_on, out_on
-    hub_emo.onclick = () => {
-      if(hub_on){
-        hub_emo.innerHTML = '📪'
-        sub_on ? sub_emo.innerHTML = '┬'+sub_emo.innerHTML.slice(1) : sub_emo.innerHTML = '─'+sub_emo.innerHTML.slice(1)
-      } else{
-        hub_emo.innerHTML = '📭'
-        sub_on ? sub_emo.innerHTML = '┼'+sub_emo.innerHTML.slice(1) : sub_emo.innerHTML = '┴'+sub_emo.innerHTML.slice(1)
-      }
-      hub_on = handle_click({ el: hub, type: 'link', data: data.hub, space, is_on: hub_on, pos: true })
-    }
-    sub_emo.onclick = () => {
-      if(sub_on){
-        hub_on ? sub_emo.innerHTML = '┴📪' : sub_emo.innerHTML = '─📪'
-      } else{
-        hub_on ? sub_emo.innerHTML = '┼📭' : sub_emo.innerHTML = '┬📭'
-      }
-      sub_on = handle_click({ el: tasks, type: 'tasks', data: data.sub, space, is_on: sub_on, grand_last: last, pos: false })
-    }
-    inp.onclick = () => {
-      if(inp_on){
-        inp.innerHTML = '🗃'
-        out_on ? out.innerHTML = '┬'+out.innerHTML.slice(1) : out.innerHTML = '─'+out.innerHTML.slice(1)
-      } else{
-        inp.innerHTML = '🗂'
-        out_on ? out.innerHTML = '┼'+out.innerHTML.slice(1) : out.innerHTML = '┴'+out.innerHTML.slice(1)
-      }
-      inp_on = handle_click({ el: inputs, type: 'io', data: data.inputs, space, is_on: inp_on, pos: true })
-    }
-    out.onclick = () => {
-      if(out_on){
-        inp_on ? out.innerHTML = '┴🗃' : out.innerHTML = '─🗃'
-      } else{
-        inp_on ? out.innerHTML = '┼🗂' : out.innerHTML = '┬🗂'
-      }
-      out_on = handle_click({ el: outputs, type: 'io', data: data.outputs, space, is_on: out_open, pos: false })
-    }
+    hub_emo.onclick = hub_click
+    sub_emo.onclick = sub_click
+    inp.onclick = inp_click
+    out.onclick = out_click
     element.onfocus = handle_focus
-    task_name.onclick = open_chat
+    details.onclick = open_chat
     last_el.onclick = handle_popup
     // after.onclick = () => {
     //   alert(host+'-'+data.id)
@@ -1127,19 +1135,55 @@ function task_explorer (opts, protocol) {
     //   }
     // }
     return element
+    function hub_click () {
+      if(hub_on){
+        hub_emo.innerHTML = '📪'
+        sub_on ? sub_emo.innerHTML = '┬'+sub_emo.innerHTML.slice(1) : sub_emo.innerHTML = '─'+sub_emo.innerHTML.slice(1)
+      } else{
+        hub_emo.innerHTML = '📭'
+        sub_on ? sub_emo.innerHTML = '┼'+sub_emo.innerHTML.slice(1) : sub_emo.innerHTML = '┴'+sub_emo.innerHTML.slice(1)
+      }
+      hub_on = handle_click({ el: hub, type: 'link', data: data.hub, space, is_on: hub_on, pos: true })
+    }
+    function sub_click () {
+      if(sub_on){
+        hub_on ? sub_emo.innerHTML = '┴📪' : sub_emo.innerHTML = '─📪'
+      } else{
+        hub_on ? sub_emo.innerHTML = '┼📭' : sub_emo.innerHTML = '┬📭'
+      }
+      sub_on = handle_click({ el: tasks, type: 'tasks', data: data.sub, space, is_on: sub_on, grand_last: last, pos: false })
+    }
+    function inp_click () {
+      if(inp_on){
+        inp.innerHTML = '🗃'
+        out_on ? out.innerHTML = '┬'+out.innerHTML.slice(1) : out.innerHTML = '─'+out.innerHTML.slice(1)
+      } else{
+        inp.innerHTML = '🗂'
+        out_on ? out.innerHTML = '┼'+out.innerHTML.slice(1) : out.innerHTML = '┴'+out.innerHTML.slice(1)
+      }
+      inp_on = handle_click({ el: inputs, type: 'io', data: data.inputs, space, is_on: inp_on, pos: true })
+    }
+    function out_click () {
+      if(out_on){
+        inp_on ? out.innerHTML = '┴🗃' : out.innerHTML = '─🗃'
+      } else{
+        inp_on ? out.innerHTML = '┼🗂' : out.innerHTML = '┬🗂'
+      }
+      out_on = handle_click({ el: outputs, type: 'io', data: data.outputs, space, is_on: out_open, pos: false })
+    }
   }
   function add_node_io ({ data, first, last, space }) {
     const element = create_node(data.type, data.id)
     const grand_space = space + '│&emsp;&nbsp;│&emsp;&emsp;&ensp;'
     space += '│&emsp;&emsp;&emsp;&emsp;&ensp;'
     element.innerHTML = `
-    <div class="task_name">
+    <div class="details">
       <span class="space">${space}</span><span class="grand_space">${grand_space}</span>${first ? '┌' : last ? '└' : '├'}</span><span class="btn">📥─</span>${data.name}<span class="after">🔗</span>
     </div>
     <div class="tasks nodes">
     </div>
     `
-    const btn = element.querySelector('.task_name > .btn')
+    const btn = element.querySelector('.details > .btn')
     const tasks = element.querySelector('.tasks')
     btn.onclick = () => handle_click({ el: tasks, type: 'link', data: data.sub, space, pos: false })
     return element
@@ -1150,7 +1194,7 @@ function task_explorer (opts, protocol) {
     element.dataset.id = data.id
     space += '│&emsp;&nbsp;'
     element.innerHTML = `
-      <div class="task_name">
+      <div class="details">
         ${space}${last ? '└' : first ? '┌' : '├'} ${data.name}
       </div>`
     element.onclick = jump
@@ -1159,7 +1203,7 @@ function task_explorer (opts, protocol) {
   }
   async function add_node_data (name, type, parent_id, users, author){
     const node_id = json_data.length
-    json_data.push({ id: node_id, name, type: state.code_words[type], chat: [], users })
+    json_data.push({ id: node_id, name, type: state.code_words[type], room: {}, users })
     if(parent_id){
       save_msg({
           head: [id],
@@ -1180,12 +1224,18 @@ function task_explorer (opts, protocol) {
       json_data[node_id].root = true
       json_data[node_id].users = [opts.host]
     }
+    save_msg({
+      head: [id],
+      type: 'save_msg',
+      data: {username: 'system', content: author + ' created ' + type.slice(0,-1)+': '+name, chat_id: node_id}
+    })
     const channel = state.net[state.aka.taskdb]
     channel.send({
       head: [id, channel.send.id, channel.mid++],
       type: 'set',
       data: json_data
     })
+    
   }
   async function on_add_node (data) {
     const node = data.id ? shadow.querySelector('#a' + data.id + ' > .'+data.type) : tree_el
@@ -1332,10 +1382,11 @@ function task_explorer (opts, protocol) {
   }
   async function save_msg (msg) {
     const {data} = msg
-    msg.data = data.content
+    msg.data = data.content,
     msg.meta = {
-      data: new Date().getTime()
-    }
+        date: new Date().getTime()
+      }
+    msg.refs = ''
     const node = json_data[Number(data.chat_id)]
     const username = data.username === host ? '' : data.username
     node.room[username] ? node.room[username].push(msg) : node.room[username] = [msg]
@@ -1403,25 +1454,25 @@ function get_theme () {
   .nodes.show{
     display: block;
   }
-  .node.focus > .task_name{
+  .node.focus > .details{
     background-color: #222;
   }
-  .io > .task_name > .grand_space{
+  .io > .details > .grand_space{
     display: none;
   }
-  .hub.show + .inputs > .io > .task_name > .grand_space,
-  .outputs:has(+ .tasks.show) > .io > .task_name > .grand_space{
+  .hub.show + .inputs > .io > .details > .grand_space,
+  .outputs:has(+ .tasks.show) > .io > .details > .grand_space{
     display: inline;
   }
-  .hub.show + .inputs > .io > .task_name > .space,
-  .outputs:has(+ .tasks.show) > .io > .task_name > .space{
+  .hub.show + .inputs > .io > .details > .space,
+  .outputs:has(+ .tasks.show) > .io > .details > .space{
     display: none;
   }
-  .task_name{
+  .details{
     white-space: nowrap;
     width: 100%;
   }
-  .task_name > .last{
+  .details > .last{
     display: none;
     position: absolute;
     right: 3px;
@@ -1430,11 +1481,11 @@ function get_theme () {
     color: white;
     box-shadow: 0 0 20px 1px rgba(255, 255, 255, 0.5);
   }
-  .task_name:hover > .last,
-  .task_name > .last.show{
+  .details:hover > .last,
+  .details > .last.show{
     display: inline;
   }
-  .task.chat_active > .task_name{
+  .task.chat_active > .details{
     color: green;
   }
   .popup{
