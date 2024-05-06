@@ -29,18 +29,29 @@
       "room": {
         "": [
             {
-                "head": "",
+                "head": {"id": "bob-0"},
                 "type": "",
                 "data": "Hi",
-                "meta": {"data": 1714473973882}
+                "meta": {"date": 1714473973882},
+                "refs": "ana-0"
             }
         ],
         "ana": [
             {
-                "head": "",
+                "head": {"id": "ana-0"},
                 "type": "",
                 "data": "Hello",
-                "meta": {"data": 1714473892250}
+                "meta": {"date": 1714473892260},
+                "refs": ""
+            }
+        ],
+        "system": [
+            {
+                "head": {"id": 0},
+                "type": "",
+                "data": "Ana created task: UI/UX design",
+                "meta": {"date": 1714473892250},
+                "refs": ""
             }
         ]
     }
