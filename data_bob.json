@@ -29,29 +29,29 @@
       "room": {
         "": [
             {
-                "head": {"id": "bob-0"},
+                "head": {"mid": 0},
                 "type": "",
                 "data": "Hi",
                 "meta": {"date": 1714473973882},
-                "refs": "ana-0"
+                "refs": {"cause": "a123-0"}
             }
         ],
-        "ana": [
+        "a123": [
             {
-                "head": {"id": "ana-0"},
+                "head": {"mid": 0},
                 "type": "",
                 "data": "Hello",
                 "meta": {"date": 1714473892260},
-                "refs": ""
+                "refs": {}
             }
         ],
         "system": [
             {
-                "head": {"id": 0},
+                "head": {"mid": 0},
                 "type": "",
                 "data": "Ana created task: UI/UX design",
                 "meta": {"date": 1714473892250},
-                "refs": ""
+                "refs": {}
             }
         ]
     }

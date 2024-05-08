@@ -325,6 +325,8 @@ async function task_messenger (opts, protocol) {
   const name = 'task_messenger'
   state.users = opts.users.filter(username => username!==opts.username)
   state.username = opts.username
+  state.pk = opts.username[0]+'123'
+  state.id_map = {'a123':'ana', 'b123':'bob'}
   // ----------------------------------------
   // PROTOCOL
   // ----------------------------------------
@@ -446,20 +448,24 @@ async function task_messenger (opts, protocol) {
     state.chat = {data: data.room, id: data.id}
     history.innerHTML = ''
     chatroom = []
-    for(entry of Object.entries(state.chat.data)){
-      entry[1].forEach(value => {
-        const refs = value.refs.split('-')
-        chatroom.push({
-          id: value.head.id,
-          username: entry[0] ? entry[0] : state.username,
-          content: value.data,
-          date: value.meta.date,
-          refs: refs.length > 1 && state.chat.data[refs[0]][refs[1]]
-        })
-      })
+    const temp_room = []
+    const temp = JSON.parse(JSON.stringify(state.chat.data))
+    const cache = [1]
+    let min = 1
+    let count = 0
+    while(min !== Infinity && count < 10 ){
+      let min_key
+      min = Infinity
+      for(entry of Object.entries(temp)){
+        if(entry[1].length && entry[1][0].meta.date < min){
+          min = entry[1][0].meta.date
+          min_key = entry[0]
+        }
+      }
+      min_key !== undefined && temp_room.push(min_key+'-'+temp[min_key].pop().head.mid)
+      count++
     }
-    chatroom.sort((a, b) => a.date - b.date)
-    chatroom.forEach(msg => render_msg({ data: msg }))
+    temp_room.forEach(append_msg)
     const channel = state.net[state.aka.chat_input]
     channel.send({
       head: [id, channel.send.id, channel.mid++],
@@ -467,6 +473,45 @@ async function task_messenger (opts, protocol) {
       data: 'Type a message'
     })
     update_status(data)
+  }
+  async function append_msg (id){
+    const element = document.createElement('div')
+    element.classList.add('msg')
+    element.id = id
+    const id_split = id.split('-')
+    const data = state.chat.data[id_split[0]][id_split[1]]
+    if(id_split[0] === 'system'){
+      element.classList.add('system')
+      element.innerHTML = data.data
+    }
+    else{
+      id_split[0] === '' && element.classList.add('right')
+      element.innerHTML = `
+        <div class='username'>
+          ${state.id_map[id_split[0] ? id_split[0] : state.pk]}
+        </div>
+        <div class='content'>
+        ${data.data}
+        </div>`
+        
+      if(data.refs.cause){
+        const cause_split = data.refs.cause.split('-')
+        const cause_data = state.chat.data[cause_split[0]][cause_split[1]]
+        const refs = document.createElement('div')
+        refs.classList.add('refs')
+        refs.innerHTML = `
+          ${cause_data.data}`
+        element.prepend(refs)
+        refs.onclick = () => {
+          const target = history.querySelector('#'+data.refs.cause)
+          target.tabIndex = '0'
+          target.focus()
+          target.onblur = () => target.removeAttribute('tabindex')
+        }
+      }
+    }
+    history.append(element)
+    history.scrollTop = history.scrollHeight
   }
   async function update_status (data) {
     const title = footer.querySelector('.title')
@@ -481,17 +526,17 @@ async function task_messenger (opts, protocol) {
   async function render_msg ({ data }){
     const element = document.createElement('div')
     element.classList.add('msg')
-    element.id = data.id
+    element.id = data.username+data.id
     
     if(data.username === 'system'){
       element.classList.add('system')
       element.innerHTML = data.content
     }
     else{
-      data.username === state.username && element.classList.add('right')
+      data.username === state.pk && element.classList.add('right')
       element.innerHTML = `
         <div class='username'>
-          ${data.username}
+          ${state.id_map[data.username]}
         </div>
         <div class='content'>
         ${data.content}
@@ -504,7 +549,8 @@ async function task_messenger (opts, protocol) {
           ${data.refs.data}`
         element.prepend(refs)
         refs.onclick = () => {
-          const target = history.querySelector('#'+data.refs.head.id)
+          data.refsname = data.refsname ? data.refsname : state.pk
+          const target = history.querySelector('#'+data.refsname+data.refs.head.mid)
           target.tabIndex = '0'
           target.focus()
           target.onblur = () => target.removeAttribute('tabindex')
