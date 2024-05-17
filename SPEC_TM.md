@@ -1,8 +1,8 @@
 # Task Messenger
 
 ### Goals
-1. we want all user interaction recorded and potentially replayable (redo/undo)
-2. we want the current state of the task structure saved (so we can load or restore it from a database without the need to replay all the interaction again)
+1. we want all user interaction recorded and potentially replayable (redo/undo), even expand/collapse and scroll position.
+2. we want the current state of the task structure saved (so we can load or restore it from a database without the need to replay all the interaction again). By current state we also mean expand/collapse status of DOM nodes and scroll position
 3. we want to store task data structure and UI state separately
 4. we want to be able to export those to a json file
 5. we want to be able to import that from a json file
@@ -22,3 +22,5 @@
     - hook (optional callback)
       
     if we pass localStorage, then all interaction persists. If we pass an object, then it is only stored in memory and lost on reload
+
+[ref1](https://discord.com/channels/859134561018839060/1219764849349755053/1236711069783687238) [ref2](https://discord.com/channels/859134561018839060/1219764849349755053/1236708841622732932) [ref3](https://discord.com/channels/859134561018839060/1219764849349755053/1236707766878339112) [ref4](https://discord.com/channels/859134561018839060/1219764849349755053/1236704995047510067) [ref5](https://discord.com/channels/859134561018839060/1219764849349755053/1236705662176591993) [ref6](https://discord.com/channels/859134561018839060/1219764849349755053/1236704220883845181)

@@ -47,7 +47,6 @@
     // ...
   } 
   ```
-
   [ref](https://discord.com/channels/859134561018839060/1235708415322361966/1239635191216214137)
 
 ### peer to peer networking (IO) [code](https://github.com/alyhxn/task-messenger/blob/master/src/node_modules/IO/IO.js)
@@ -71,7 +70,7 @@
 - A module for debugging
 - Equiped with tools to quickly catch an error
 
-  [ref](https://discord.com/channels/859134561018839060/1235708415322361966/1238882893011484762)
+[ref](https://discord.com/channels/859134561018839060/1235708415322361966/1238882893011484762)
 
 ## Summary
 - ### Goal
@@ -92,10 +91,12 @@
   2. They then write messages on individual pages, which are permanently sealed once added to the book.
   3. Conversations progress as users exchange these "books," copying pages to compile their own records.
   4. Users can create new books containing pages copied from others, consolidating their conversations.
- [ref](https://discord.com/channels/859134561018839060/1235708415322361966/1236431670182285383)
+  
+  [ref](https://discord.com/channels/859134561018839060/1235708415322361966/1236431670182285383)
 
 - ### Minimum use of `IO`
   `IO` can only be used to establish connections not to send messages or even index of new messages because now `DB` notifies the readers itself.
+  
   [ref](https://discord.com/channels/859134561018839060/1235708415322361966/1237085298467536976)
 
 - ### Establishing Connection/protocol b/w two peers
@@ -112,6 +113,7 @@
   9. Bob receives the ID and accesses the book.
 
   Now both peers are connected and can communicate.
+  
   [ref](https://discord.com/channels/859134561018839060/1235708415322361966/1237205792789237860)
 
 - ### standard msg format
