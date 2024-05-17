@@ -55,6 +55,7 @@
 - Used to send messages
 - Uses `MessageChannel`
 - Message content should be minimal
+- Is used to when establishing connection b/w two peers.
 - Should be avoided when possible
 
 ### vault [code](https://github.com/alyhxn/task-messenger/blob/master/src/node_modules/vault/vault.js)
