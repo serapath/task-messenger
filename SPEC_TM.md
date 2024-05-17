@@ -2,7 +2,7 @@
 
 ### Goals
 1. we want all user interaction recorded and potentially replayable (redo/undo)
-2. we want the current state of the task structure saved (so we can load or restore it from a database without the need to replay all the interaction again
+2. we want the current state of the task structure saved (so we can load or restore it from a database without the need to replay all the interaction again)
 3. we want to store task data structure and UI state separately
 4. we want to be able to export those to a json file
 5. we want to be able to import that from a json file
@@ -15,7 +15,8 @@
     - import -> to import a json file and overwrite the current task structure with the imported version
 10. we will just avoid lots of data to store everything in localStorage and later when we have it, we can update it to e.g. [kv-idb](https://www.npmjs.com/package/kv-idb) that uses indexdb so you have unlimited storage space
 11. Code for random data generation [link](https://colab.research.google.com/drive/1ZZuJpI9AsCcKDaEU5pePfrT5vqxmT5kW#scrollTo=PDCgHqFE_h9Y)
-12. Let's assume we will pass to DB(....) many params
+12. We will test the app with heavy data when we get all the optimizations done like lazy loading, loading UI state or task data and after we have implemented DB and IO modules.
+13. Let's assume we will pass to DB(....) many params
     - seed
     - storage (e.g. localStorage vs. {})
     - hook (optional callback)
