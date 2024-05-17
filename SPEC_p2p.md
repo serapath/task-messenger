@@ -15,7 +15,7 @@
 
 ## Modules
 
-### Journaling Book Database (DB)
+### Journaling Book Database (DB) [code](https://github.com/alyhxn/task-messenger/blob/master/src/node_modules/DB/DB.js)
 - Represents `hypercore`(book) and `corestore`(db)
 - Uses localStorage to store messages
 - Contains books/arrays
@@ -50,23 +50,23 @@
 
   [ref](https://discord.com/channels/859134561018839060/1235708415322361966/1239635191216214137)
 
-### peer to peer networking (IO)
+### peer to peer networking (IO) [code](https://github.com/alyhxn/task-messenger/blob/master/src/node_modules/IO/IO.js)
 - Represents `hyperswarm`
 - Used to send messages
 - Uses `MessageChannel`
 - Message content should be minimal
 - Should be avoided when possible
 
-### vault
+### vault [code](https://github.com/alyhxn/task-messenger/blob/master/src/node_modules/vault/vault.js)
 - A module to initialize DB and IO for a peer
 
-### peer
+### peer [code](https://github.com/alyhxn/task-messenger/blob/master/demo/p2p.js)
 - A module meant to be controlled by the peer
 - Manages communiction through IO
 - Appends/reads data from DB
 - Handles task messenger
 
-### dbdevtools
+### devtools [code](https://github.com/alyhxn/task-messenger/blob/master/demo/devtools.js)
 - A module for debugging
 - Equiped with tools to quickly catch an error
 
