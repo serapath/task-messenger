@@ -414,7 +414,7 @@ async function task_messenger (opts, protocol) {
     channel_up.send({
       head: [id, channel_up.send.id, channel_up.mid++],
       type: 'send',
-      data: {from: state.username, users: state.users, to: 'task_messenger', type: 'on_rx', data_re: {content: data.content, chat_id: state.chat.id}}
+      data: {from: state.pk, users: state.users, to: 'task_messenger', type: 'on_rx', data_re: {content: data.content, chat_id: state.chat.id}}
     })
   }
   async function on_rx (data) {
@@ -426,6 +426,7 @@ async function task_messenger (opts, protocol) {
       type: 'save_msg',
       data: {content, username: from, chat_id}
     })
+    console.error(data)
     if(state.chat && chat_id === state.chat.id)
       render_msg({ data: { username: from, content }})
     history.scrollTop = history.scrollHeight
@@ -702,8 +703,7 @@ async function chat_input (opts, protocol) {
   const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {} } // all state of component instance
   state.shift_status = true
   state.textmode = "msg"
-  state.username = opts.host
-
+  state.pk = opts.host[0]+'123'
   // ----------------------------------------
   // PROTOCOL
   // ----------------------------------------
@@ -845,7 +845,7 @@ async function chat_input (opts, protocol) {
     channel_up.send({
       head: [id, channel_up.send.id, channel_up.mid++],
       type: 'on_tx',
-      data: {content: textarea.value.replaceAll('\n', '<br>'), username: state.username}
+      data: {content: textarea.value.replaceAll('\n', '<br>'), username: state.pk}
     })
     textarea.value = ''
   }
@@ -1215,7 +1215,7 @@ function task_explorer (opts, protocol) {
       } else{
         inp_on ? out.innerHTML = '┼🗂' : out.innerHTML = '┬🗂'
       }
-      out_on = handle_click({ el: outputs, type: 'io', data: data.outputs, space, is_on: out_open, pos: false })
+      out_on = handle_click({ el: outputs, type: 'io', data: data.outputs, space, is_on: out_on, pos: false })
     }
   }
   function add_node_io ({ data, first, last, space }) {
