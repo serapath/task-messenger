@@ -53,6 +53,10 @@ async function task_messenger (opts, protocol) {
         </div>
         <div class="input_box noblur">
         </div>
+        <div class="explorer_box">
+        </div>
+        <div class="input_box noblur">
+        </div>
       </div>
       <div class="footer">
         <div class="title">
@@ -67,6 +71,8 @@ async function task_messenger (opts, protocol) {
     </div>
   `
   // ----------------------------------------
+  const explorer_box = shadow.querySelector('.explorer_box').attachShadow(shopts)
+  const input_box = shadow.querySelector('.input_box').attachShadow(shopts)
   const explorer_box = shadow.querySelector('.explorer_box').attachShadow(shopts)
   const input_box = shadow.querySelector('.input_box').attachShadow(shopts)
   const history = shadow.querySelector('.history')
@@ -85,13 +91,20 @@ async function task_messenger (opts, protocol) {
     const opts = { users: state.users, host: state.username }
     const element = task_explorer(opts, protocol)
     explorer_box.append(element)
+    const opts = { users: state.users, host: state.username }
+    const element = task_explorer(opts, protocol)
+    explorer_box.append(element)
   }
   {//chat input
     const on = {
       send,
       on_tx,
+      on_tx,
     }
     const protocol = use_protocol('chat_input')({ state, on })
+    const opts = { users: state.users, host: state.username }
+    const element = await chat_input(opts, protocol)
+    input_box.append(element)
     const opts = { users: state.users, host: state.username }
     const element = await chat_input(opts, protocol)
     input_box.append(element)
@@ -113,8 +126,10 @@ async function task_messenger (opts, protocol) {
       head: [id, channel_up.send.id, channel_up.mid++],
       type: 'send',
       data: {from: state.username, users: state.users, to: 'task_messenger', type: 'on_rx', data_re: {content: data.content, chat_id: state.chat.id}}
+      data: {from: state.username, users: state.users, to: 'task_messenger', type: 'on_rx', data_re: {content: data.content, chat_id: state.chat.id}}
     })
   }
+  async function on_rx (data) {
   async function on_rx (data) {
     const { from, data_re } = data
     const { content, chat_id } = data_re
@@ -143,6 +158,7 @@ async function task_messenger (opts, protocol) {
     })
   }
   async function open_chat ({ data }){
+    state.chat = {data: data.room, id: data.id}
     state.chat = {data: data.room, id: data.id}
     history.innerHTML = ''
     chatroom = []
