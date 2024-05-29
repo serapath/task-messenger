@@ -414,7 +414,7 @@ async function task_messenger (opts, protocol) {
     channel_up.send({
       head: [id, channel_up.send.id, channel_up.mid++],
       type: 'send',
-      data: {from: state.username, users: state.users, to: 'task_messenger', type: 'on_rx', data_re: {content: data.content, chat_id: state.chat.id}}
+      data: {from: state.pk, users: state.users, to: 'task_messenger', type: 'on_rx', data_re: {content: data.content, chat_id: state.chat.id}}
     })
   }
   async function on_rx (data) {
@@ -426,6 +426,7 @@ async function task_messenger (opts, protocol) {
       type: 'save_msg',
       data: {content, username: from, chat_id}
     })
+    console.error(data)
     if(state.chat && chat_id === state.chat.id)
       render_msg({ data: { username: from, content }})
     history.scrollTop = history.scrollHeight
@@ -679,6 +680,7 @@ function use_protocol (petname) {
 
 }).call(this)}).call(this,require('_process'),"/src/index.js")
 },{"_process":2,"chat_input":4,"task_explorer":5}],4:[function(require,module,exports){
+},{"_process":2,"chat_input":4,"task_explorer":5}],4:[function(require,module,exports){
 (function (process,__filename){(function (){
 // ----------------------------------------
 // MODULE STATE & ID
@@ -702,8 +704,7 @@ async function chat_input (opts, protocol) {
   const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {} } // all state of component instance
   state.shift_status = true
   state.textmode = "msg"
-  state.username = opts.host
-
+  state.pk = opts.host[0]+'123'
   // ----------------------------------------
   // PROTOCOL
   // ----------------------------------------
@@ -845,7 +846,7 @@ async function chat_input (opts, protocol) {
     channel_up.send({
       head: [id, channel_up.send.id, channel_up.mid++],
       type: 'on_tx',
-      data: {content: textarea.value.replaceAll('\n', '<br>'), username: state.username}
+      data: {content: textarea.value.replaceAll('\n', '<br>'), username: state.pk}
     })
     textarea.value = ''
   }
@@ -1024,11 +1025,14 @@ function task_explorer (opts, protocol) {
         <div>Edit</div>
         <div>Drop</div>
       </div>
+      <style>
+      </style>
     </div>
     `
   // ----------------------------------------
   const tree_el = shadow.querySelector('main')
   const popup = shadow.querySelector('.popup')
+  const styles = shadow.querySelector('style')
   // ----------------------------------------
   // ELEMENTS
   // ----------------------------------------
@@ -1077,7 +1081,7 @@ function task_explorer (opts, protocol) {
   async function fill_tree_el () {
     const root_nodes = json_data.filter(data => data.root)
     const length = root_nodes.length - 1
-    tree_el.append(...root_nodes.map((data, i) => add_node_root({ data, last: i === length })))
+    root_nodes.forEach((data, i) => tree_el.append(...add_node_root({ data, last: i === length })))
   }
   function create_node (type, id) {
     const element = document.createElement('div')
@@ -1103,7 +1107,7 @@ function task_explorer (opts, protocol) {
   function add_node_el ({ data, parent, space, grand_last, type }){
     const is_single = parent.children.length ? false : true
     if(data.root){
-      parent.prepend(add_node_root({ data, last: false}))
+      parent.prepend(...add_node_root({ data, last: false}))
       return
     }
     //hub or sub node check
@@ -1118,8 +1122,6 @@ function task_explorer (opts, protocol) {
     element.innerHTML = `
       <div class="details">
         ${last ? '└' : '├'}<span class="tas">📓─</span>${data.name}<span class="last">...</span>
-      </div>
-      <div class="tasks nodes">
       </div>
     `
     const sub_emo = element.querySelector('.details > .tas')
@@ -1145,10 +1147,6 @@ function task_explorer (opts, protocol) {
       </div>
       <div class="details">
         ${space}${last ? '└' : '├'}<span class="hub_emo">📪</span><span class="tas">─📪</span><span class="inp">🗃</span><span class="out">─🗃</span><span class="name">${data.name}</span><span class="last">...</span>
-      </div>
-      <div class="outputs nodes">
-      </div>
-      <div class="tasks nodes">
       </div>
     `
     const details = element.querySelector('.details > .name')
@@ -1215,7 +1213,7 @@ function task_explorer (opts, protocol) {
       } else{
         inp_on ? out.innerHTML = '┼🗂' : out.innerHTML = '┬🗂'
       }
-      out_on = handle_click({ el: outputs, type: 'io', data: data.outputs, space, is_on: out_open, pos: false })
+      out_on = handle_click({ el: outputs, type: 'io', data: data.outputs, space, is_on: out_on, pos: false })
     }
   }
   function add_node_io ({ data, first, last, space }) {
@@ -1245,7 +1243,109 @@ function task_explorer (opts, protocol) {
       </div>`
     element.onclick = jump
     
-    return element
+    return [element]
+  }
+  function node_onfocus (e) {
+    selected_task = e.target
+    selected_task.classList.add('focus')
+    selected_task.addEventListener('blur', e => {
+      if(e.relatedTarget && e.relatedTarget.classList.contains('noblur'))
+        return
+      selected_task.classList.remove('focus')
+      selected_task = undefined
+    }, { once: true })
+  }
+  function handle_popup (e) {
+    const el = e.target
+    el.classList.add('show')
+    popup.style.top = el.offsetTop - 20 + 'px'
+    popup.style.left = el.offsetLeft - 56 + 'px'
+    popup.focus()
+    popup.addEventListener('blur', () => {
+      el.classList.remove('show')
+    }, { once: true })
+  }
+  function handle_click ({ el, type, data, space, check, super_last, pos, classes, parent_id }) {
+    classes = [...classes, type+parent_id]
+    if(data){
+      const selector = '.'+type+parent_id
+      //hide subnodes
+      if(check)
+        styles.innerHTML += `
+          ${selector}{
+            display: none;
+          }
+        `
+      //show subnodes
+      else if(tree_el.querySelector(selector))
+        styles.innerHTML += `
+          ${selector}{
+            display: block;
+          }
+        `
+      //make subnodes
+      else{
+        length = data.length - 1
+        data.forEach((value, i) => el.before(...on_add[type]({ data: json_data[value], first: pos ? 0 === i : false, last: pos ? false : length === i, space, super_last, classes })))
+      }
+    }
+    return !check
+  }
+  async function handle_export () {
+    const data = await traverse( selected_task.id.slice(1) )
+    const json_string = JSON.stringify(data, null, 2);
+    const blob = new Blob([json_string], { type: 'application/json' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'data.json';
+    link.click();
+  }
+  async function handle_add (data) {
+    data = data.slice(2).trim().toLowerCase()
+    const input = document.createElement('input')
+    let node, classes, task_id, space = '', super_last = true, root = true
+    if(selected_task){
+      task_id = selected_task.id.slice(1)
+      classes = Array(...selected_task.classList)
+      classes.pop()
+      node = selected_task
+      console.error(add_words[data] + task_id)
+      const before = selected_task.querySelector('.' + data.slice(0,3))
+      before.dispatchEvent(new MouseEvent('click', {bubbles:true, cancelable: true, view: window}))
+      super_last = selected_task.dataset.super_last
+      space = selected_task.dataset.space
+      selected_task.classList.remove('focus')
+      selected_task = undefined
+      root = false
+      node.after(input)
+    }
+    else{
+      node = tree_el
+      task_id = ''
+      node.prepend(input)
+    }
+    input.onkeydown = async (event) => {
+      if (event.key === 'Enter') {
+        input.blur()
+        add_node_el({ data : { name: input.value, id: json_data.length, type: code_words[data], root }, space, super_last, type: data, parent: node, classes })
+        const users = task_id ? json_data[task_id].users : [host]
+        add_node_data(input.value, data, task_id, users)
+        if(users.length > 1)
+          channel_up.send({
+            head: [id, channel_up.send.id, channel_up.mid++],
+            type: 'send',
+            data: {to: 'task_explorer', route: ['up', 'task_explorer'], users: json_data[task_id].users.filter(user => user !== host), type: 'on_add_node', data: {name: input.value, id: task_id, type: data, users, super_last, space} }
+          })
+        if(chat_task && task_id === chat_task.id.slice(1))
+          channel_up.send({
+            head: [id, channel_up.send.id, channel_up.mid++],
+            type: 'post_msg',
+            data: {username: 'system', content: host+' added '+data.slice(0, -1)+': '+input.value}
+          })
+      }
+    }
+    input.focus()
+    input.onblur = () => input.remove()
   }
   async function add_node_data (name, type, parent_id, users, author){
     const node_id = json_data.length
@@ -1489,7 +1589,7 @@ function get_theme () {
     position: relative;
     min-width: fit-content;
   }
-  .task{
+  .node{
     cursor: pointer;
     margin: 5px 0;
   }
@@ -1552,6 +1652,9 @@ function get_theme () {
   .popup > div:hover{
     background-color: #555;
   }
+  .not{
+    display: none;
+  }
   `
 }
 function use_protocol (petname) {
@@ -1582,6 +1685,7 @@ function use_protocol (petname) {
 }
 
 }).call(this)}).call(this,require('_process'),"/src/node_modules/task_explorer/task_explorer.js")
+},{"_process":2,"taskdb":6}],6:[function(require,module,exports){
 },{"_process":2,"taskdb":6}],6:[function(require,module,exports){
 (function (process,__filename){(function (){
 // MODULE STATE & ID
