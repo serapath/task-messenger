@@ -1,13 +1,11 @@
 {
-  "name": "wizard-amigos-website",
+  "name": "task-messenger",
   "version": "0.0.1",
   "description": "",
-  "main": "src/index.js",
+  "main": "src/taskmessenger.js",
   "scripts": {
-    "dev": "budo demo/devtools.js:bundle-dev.js --open --live",
-    "start": "budo demo/demo.js:bundle.js --open --live",
-    "build": "browserify demo/demo.js > bundle.js && browserify demo/devtools.js > bundle-dev.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "budo web/shim.js:bundle.js --port=10000 --host=localhost --open --live",
+    "build": "browserify web/shim.js > bundle.js"
   },
   "devDependencies": {
     "browserify": "^17.0.0",
