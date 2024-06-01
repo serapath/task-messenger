@@ -34,6 +34,11 @@ const PROGRAMS = {
 // 3. start
 require('dbio')(REGISTRY, PROGRAMS)
 
+// @TODOs:
+// 1. at first to enable the connectivity you need to continue with your work
+// 2. second, to slowly refactor the code base and get rid of browserify/budo and the "bundle step" (which is a bit of a tough one)
+// 3. to factor out the runtime code and remove it from the "task-messenger" repository
+
 /* STORY:
 1. shim loads to define REGISTRY and PROGRAMS (validated + sanitized)
 2. dbio -> dbio_loader runs:
