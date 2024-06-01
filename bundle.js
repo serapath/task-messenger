@@ -1783,7 +1783,15 @@ function bob_js ({ require }) {
     //     else return o[k] = location[k] = v
     //   },
     // }),
-    window.shadow = document.body.attachShadow({ mode: 'closed' })
+    const vault = document.createElement('div')
+    document.body.append(vault)
+    vault.style = 'flex-grow: 1;'
+    const kernel = Object.assign(document.createElement('div'), {
+      innerHTML: 'dbio shim: [v0.0.1-pre-alpha-rc.1] dat(a container runtime)',
+      style: 'font-size: 10px; align-self: center;'
+    })
+    document.body.append(kernel)
+    window.shadow = vault.attachShadow({ mode: 'closed' })
     Object.defineProperty(window, 'onhashchange',  {
       get () { return on.hashchange },
       set (v) { return on.hashchange = v }
@@ -1794,10 +1802,11 @@ function bob_js ({ require }) {
   }
   // ----------------------------------------------------------------------------
   async function dbio_loader (REGISTRY, PROGRAMS) { // v2024.05.27
-    const randomHsl = () => `hsla(${Math.random() * 360}, 100%, 15%, 1)`
+    const randomHsl = () => `hsla(${Math.random() * 360}, 100%, 25%, 1)`
     const c = randomHsl()
-    document.body.style = `box-sizing: border-box; margin: 0; display: grid; height: 100vh;
-    background-color: ${c}; color: lime; font-family: Courier New; padding: 10px;`
+    document.body.style = `box-sizing: border-box; margin: 0;
+    display: flex; flex-direction: column; height: 100vh;
+    background-color: ${c}; color: lime; font-family: Courier New; padding: 2px;`
     document.title = `[🪐] `
     const { href, hash } = new URL(document.currentScript.src)
     // @TODO: use # everything for now -> but later history push state to adjust query too
@@ -2074,23 +2083,20 @@ function bob_js ({ require }) {
       const bytes = new TextEncoder().encode(html)
       const b64 = btoa(Array.from(bytes, b => String.fromCodePoint(b)).join(""))
       iframe.src = 'data:text/html;base64,' + b64 // data uri
-      // const randomHsl = () => `hsla(${Math.random() * 360}, 100%, 15%, 1)`
+      // const randomHsl = () => `hsla(${Math.random() * 360}, 100%, 65%, 1)`
       // const c = randomHsl()
       // iframe.style = `border: 1; width: 100%; height: 100%; display: grid;
       // box-sizing: border-box; background-color: ${c};`
 
-      iframe.style = `border: 1; width: 100%;
+      iframe.style = `border: 2px solid red; width: 100%;
       height: 100%;
       display: grid;
-      box-sizing: border-box;
-      background-color: red;
-      padding: 2px;
-  }`
+      box-sizing: border-box;`
       const el = document.createElement('div')
       el.style = `height: 100%;
       box-sizing: border-box;
-      padding: 10px;
-      background-color: black;`
+      padding: 2px;
+      background-color: white;`
       const sh = el.attachShadow({ mode: 'closed' })
       sh.append(iframe)
       return el
@@ -2104,19 +2110,15 @@ function bob_js ({ require }) {
   }
   // ----------------------------------------------------------------------------
   async function internal_vault (node) { // v2024.05.30
-    document.documentElement.style = `    height: 100%;
-    background-color: pink;
-    margin: 0;
-    padding: 10px;
-    box-sizing: border-box;`
+    document.documentElement.style = `height: 100%; margin: 0; box-sizing: border-box;`
     document.body.style = `display: flex;
     flex-direction: column;
     flex-grow: 1;
     height: 100%;
+    margin: 0;
     box-sizing: border-box;
     padding: 10px;
-    margin: 0;
-    background-color: rgb(23, 77, 0);
+    background-color: pink;
 }`
     const tasks = {}
     const fragment = location.hash.slice(1)
@@ -2129,11 +2131,11 @@ function bob_js ({ require }) {
     background-color: gray;
     height: 100%;`
     el.innerHTML = `
+    <div class="grid"></div>
     <h1> book menu </h1>
     <ul>
     ${Object.keys(command).map(name => `<li><a href="#${name}">${name}</a></li>`).join('')}
-    </ul>
-    <div class="grid"></div>`
+    </ul>`
     const grid = el.querySelector('.grid')
     grid.style = `display: flex;
     flex-direction: column;
