@@ -1694,6 +1694,7 @@ function bob_js ({ require }) {
       window.node.require = use.bind(require)
       window.node.config = command
       window.name = `${label}`
+      window.node.name = referrer
       const vault_window = {
         JSON: window.JSON,
         Object: window.Object,
@@ -1705,7 +1706,6 @@ function bob_js ({ require }) {
         Error,
         Math,
         setInterval,
-        // iframer,
       }
       vault_window.window = vault_window
       const api = node.box(`(${launch})(window.node)`, vault_window)
@@ -1714,8 +1714,6 @@ function bob_js ({ require }) {
     } else {
       const command = fragment
       const [require, launch] = REGISTRY[command]
-
-
 
       const label = fragment
       const port = window.port
@@ -1940,10 +1938,7 @@ function bob_js ({ require }) {
     if (window.name !== web_loader.name) throw new Error('web loader error')
     const { opts: command } = __temp__
 
-    console.log({command})
-
     const vault_name = command[''] || '(vault)'
-
 
     // @TODO: what if command is only a single string?
     const fragment = typeof command === 'string' ? command : cmd_codec.encode(command)
@@ -2009,6 +2004,8 @@ function bob_js ({ require }) {
     // console.log('CHOOSE:', {name, opts}) // (root) // opts
     const args = (typeof opts === 'string') ? {} : opts
 
+
+
     const loader_sdk = await (('' in args) ? make_vault_sdk(window) : make_sys_sdk(window))
     // const loader_sdk = await make_sys_sdk(window)
     loader_sdk.port = port0
@@ -2016,15 +2013,22 @@ function bob_js ({ require }) {
     loader_sdk.__temp__ = { bundle, opts }
     loader_sdk.cmd_codec = cmd_codec
     loader_sdk.name = loader.name
+    loader_sdk.referrer = name
+
+
 
     const app_sdk = box(loader, safeguard(loader_sdk))
     app_sdk.node = { box, spawn }
     app_sdk.port = port2
     app_sdk.Error = Error
     app_sdk.cmd_codec = cmd_codec
+    app_sdk.referrer = name
 
     // inside new iframe, BOOTLOADER box -> run bundle again to load "vault"
     const app_api = box(bundle, safeguard(app_sdk))
+
+
+
     // @TODO: maybe use `app_api`
     return
     function prog_receive (event) {
@@ -2096,7 +2100,7 @@ function bob_js ({ require }) {
       el.style = `height: 100%;
       box-sizing: border-box;
       padding: 2px;
-      background-color: white;`
+      background-color: #333;`
       const sh = el.attachShadow({ mode: 'closed' })
       sh.append(iframe)
       return el
@@ -2117,42 +2121,57 @@ function bob_js ({ require }) {
     height: 100%;
     margin: 0;
     box-sizing: border-box;
-    padding: 10px;
-    background-color: pink;
+    padding: 0;
 }`
     const tasks = {}
     const fragment = location.hash.slice(1)
     const command = cmd_codec.decode(fragment)
+
+    const icon_play = '▶️'
+    const icon_stop = '⏹'
+    const state = { program: {} }
     const { config, spawn } = node
     if (JSON.stringify(config) !== JSON.stringify(command)) throw new Error('wat?')
     const el = document.createElement('div')
     el.style = `display: flex;
     flex-direction: column;
     background-color: gray;
+    box-sizing: border-box;
     height: 100%;`
     el.innerHTML = `
     <div class="grid"></div>
-    <h1> book menu </h1>
-    <ul>
-    ${Object.keys(command).map(name => `<li><a href="#${name}">${name}</a></li>`).join('')}
-    </ul>`
-    const grid = el.querySelector('.grid')
+    <div><label>🛡️ ${node.name} </label><span> ${
+      Object.keys(command).map(name => {
+      state.program[name] = 'idle'
+      return `<button data-name="${name}"><span>${icon_play}</span>${name}</button>`
+    }).join('')
+    }</span></div>`
+    const [grid, menu] = el.children
+    menu.style = `background-color: gray`
     grid.style = `display: flex;
     flex-direction: column;
     box-sizing: border-box;
     padding: 5px;
     flex-grow: 1;
     background-color: darkgray;`
-    const anchors = [...el.querySelectorAll('a')]
-    anchors.forEach(a => a.onclick = (navigate({
-      preventDefault: () => {},
-      target: a
+    const items = [...el.querySelectorAll('button')]
+    items.forEach(btn => btn.onclick = (navigate({
+      preventDefault: () => {}, currentTarget: btn
     }), navigate))
     document.body.replaceChildren(el)
     function navigate (event) {
       event.preventDefault()
-      const name = event.target.getAttribute('href').slice(1)
-      if (grid.querySelector(`#${name}`)) return
+      const btn = event.currentTarget
+      const { name } = btn.dataset
+      const [icon] = btn.children
+      const is_idle = state.program[name] === 'idle'
+      icon.textContent = is_idle ? icon_stop : icon_play
+      state.program[name] = is_idle ? 'busy' : 'idle'
+      if (!is_idle) {
+        state.program[name] = 'idle'
+        grid.querySelector(`#${name}`).remove()
+        return
+      }
       const app = Object.assign(document.createElement('div'), { id: name })
       const randomHsl = () => `hsla(${Math.random() * 360}, 100%, 65%, 1)`
       const c = randomHsl()
