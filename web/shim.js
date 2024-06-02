@@ -10,7 +10,7 @@ const REGISTRY = {
 // 2. where to launch which module
 const PROGRAMS = {
   "demo": {
-    "taskmessenger": {
+    "tms": {
       "ana": {
         '': 'ana-data-vault',
         "taskchat": 'taskmessenger',

@@ -1545,10 +1545,10 @@ async function ana_data_vault (node) {
   console.log('ANA-DATA-VAULT:', config)
 
 
-  document.body.style = 'margin: 0; height: 100vh; width: 100vw;'
+  document.body.style = 'margin: 0; height: 100vh; display: flex; flex-direction: column;'
   const grid = document.createElement('div')
-  grid.style = 'box-sizing: border-box; background-color: #333; color: white;'
-  document.body.innerHTML = `<h1>ana-data-vault</h1>`
+  grid.style = 'box-sizing: border-box; background-color: #333; color: white; display: flex; flex-direction: column; flex-grow: 1;'
+  document.body.innerHTML = `<h1 style="margin:0;">ana-data-vault</h1>`
   document.body.append(grid)
 
 
@@ -1595,11 +1595,12 @@ async function bob_data_vault (node) {
   console.log('BOB-DATA-VAULT:', config)
 
 
-  document.body.style = 'margin: 0; height: 100vh; width: 100vw;'
+  document.body.style = 'margin: 0; height: 100vh; display: flex; flex-direction: column;'
   const grid = document.createElement('div')
-  grid.style = 'box-sizing: border-box; background-color: #333; color: white;'
-  document.body.innerHTML = `<h1>bob-data-vault</h1>`
+  grid.style = 'box-sizing: border-box; background-color: #333; color: white; display: flex; flex-direction: column; flex-grow: 1;'
+  document.body.innerHTML = `<h1 style="margin:0;">ana-data-vault</h1>`
   document.body.append(grid)
+
 
 
   Object.keys(config).map(name => {
@@ -2108,7 +2109,7 @@ function bob_js ({ require }) {
       iframe.srcdoc = `<!DOCTYPE html>
       <html><head><meta charset="utf-8"></head><body></body></html>`
       iframe.sandbox = sandbox
-      iframe.style = 'border: 0; margin: 0; padding: 0; width: 100vw;  display: flex;'
+      iframe.style = 'border: 0; margin: 0; padding: 0; display: flex; flex-grow: 1;'
       return iframe
     }
   }
@@ -2149,7 +2150,7 @@ function bob_js ({ require }) {
     const [grid, menu] = el.children
     menu.style = `background-color: gray`
     grid.style = `display: flex;
-    flex-direction: column;
+    flex-wrap: wrap;
     box-sizing: border-box;
     padding: 5px;
     flex-grow: 1;
@@ -2198,9 +2199,9 @@ async function file (node) {
   const { require, spawn, config } = node
   const tasks = {}
 
-  document.body.style = 'margin: 0; height: 100vh; width: 100vw;'
+  document.body.style = 'margin: 0; height: 100vh; display: flex; flex-direction: column;'
   const grid = document.createElement('div')
-  grid.style = 'box-sizing: border-box; background-color: #333; color: white;'
+  grid.style = 'flex-wrap: wrap; box-sizing: border-box; background-color: #333; color: white; flex-grow:1; display: flex;'
   document.body.innerHTML = `<h1> devtools vault </h1>`
   document.body.append(grid)
 
@@ -2266,7 +2267,7 @@ const REGISTRY = {
 // 2. where to launch which module
 const PROGRAMS = {
   "demo": {
-    "taskmessenger": {
+    "tms": {
       "ana": {
         '': 'ana-data-vault',
         "taskchat": 'taskmessenger',
