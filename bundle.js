@@ -1761,8 +1761,11 @@ function bob_js ({ require }) {
   // demo(taskmessenger(ana,bob),devenv(ana,bob))
   // ----------------------------------------------------------------------------
   async function dbio (REGISTRY, PROGRAMS) { // v2024.05.27
+    const daturn_armed_turtle_shell = `🪐🚀<span style="transform: scale(-1, 1);">🐢</span>`
+    const info = `dbio shim: [v0.0.1-pre-alpha-rc.1] ${daturn_armed_turtle_shell} dat(a container runtime)`
     const on = {}
-    console.log('%c[v0.0.1-pre-alpha-rc.1] dat container runtime', 'color: gray;')
+    const txt = Object.assign(document.createElement('div'), { innerHTML: info} ).textContent
+    console.log(`%c${txt}`, 'color: gray;')
     window.name = '(dbio)'
     window.fetch = window.fetch.bind(window)
     window.addEventListener = window.addEventListener.bind(window)
@@ -1786,8 +1789,9 @@ function bob_js ({ require }) {
     document.body.append(vault)
     vault.style = 'flex-grow: 1;'
     const kernel = Object.assign(document.createElement('div'), {
-      innerHTML: 'dbio shim: [v0.0.1-pre-alpha-rc.1] dat(a container runtime)',
-      style: 'font-size: 10px; align-self: center;'
+      innerHTML: info,
+      style: `line-height: 14px; display: flex; align-items: center;
+      justify-content: center; font-size: 9px; font-weight: 900;`
     })
     document.body.append(kernel)
     window.shadow = vault.attachShadow({ mode: 'closed' })
@@ -1802,10 +1806,11 @@ function bob_js ({ require }) {
   // ----------------------------------------------------------------------------
   async function dbio_loader (REGISTRY, PROGRAMS) { // v2024.05.27
     const randomHsl = () => `hsla(${Math.random() * 360}, 100%, 25%, 1)`
-    const c = randomHsl()
+    // const c = randomHsl()
+    const c = `hsla(133, 57%, 45%, 1);`
     document.body.style = `box-sizing: border-box; margin: 0;
     display: flex; flex-direction: column; height: 100vh;
-    background-color: ${c}; color: lime; font-family: Courier New; padding: 2px;`
+    background-color: ${c}; color: white; font-family: Courier New; padding: 0px;`
     document.title = `[🪐] `
     const { href, hash } = new URL(document.currentScript.src)
     // @TODO: use # everything for now -> but later history push state to adjust query too
@@ -2139,9 +2144,10 @@ function bob_js ({ require }) {
     background-color: gray;
     box-sizing: border-box;
     height: 100%;`
+    // 🛡️
     el.innerHTML = `
     <div class="grid"></div>
-    <div><label>🛡️ ${node.name} </label><span> ${
+    <div><label>🐢 ${node.name} </label><span> ${
       Object.keys(command).map(name => {
       state.program[name] = 'idle'
       return `<button data-name="${name}"><span>${icon_play}</span>${name}</button>`
@@ -2267,7 +2273,7 @@ const REGISTRY = {
 // 2. where to launch which module
 const PROGRAMS = {
   "demo": {
-    "tms": {
+    "tm": {
       "ana": {
         '': 'ana-data-vault',
         "taskchat": 'taskmessenger',
@@ -2293,7 +2299,9 @@ require('dbio')(REGISTRY, PROGRAMS)
 
 // @TODOs:
 // 1. at first to enable the connectivity you need to continue with your work
-// 2. second, to slowly refactor the code base and get rid of browserify/budo and the "bundle step" (which is a bit of a tough one)
+// 2. second, to slowly refactor the code base and get rid
+//    of browserify/budo and the "bundle step"
+//    (which is a bit of a tough one)
 // 3. to factor out the runtime code and remove it from the "task-messenger" repository
 
 /* STORY:
