@@ -1587,6 +1587,7 @@ async function ana_js (node) { // ANA.js
   document.body.innerHTML = '<h1>ana-test</h1>'
   // document.body.innerHTML = localStorage.ana
   document.body.style = 'background: skyblue;'
+<<<<<<< HEAD
 
 
   // const args_ana = [{ name: 'ana', pk: `6789ana`, sk: `9876oiuy` }]
@@ -1612,6 +1613,10 @@ async function ana_js (node) { // ANA.js
   // --------------------------------------
   ana()
   return state.id
+=======
+  ana()
+  return 
+>>>>>>> Bundled
   function ana (c = 0) {
     console.log('%cHere: ', 'color: red;', window)
     const clearTimeout = window.clearTimeout
@@ -1622,6 +1627,7 @@ async function ana_js (node) { // ANA.js
     B.onclick = () => clearTimeout(id)
     B.textContent = 'stop ana'
     document.body.append(B)
+<<<<<<< HEAD
   }
   // --------------------------------------
   async function connect ({ head, data }, port) {
@@ -1652,6 +1658,8 @@ async function ana_js (node) { // ANA.js
       allLocalStorage[key] = JSON.parse(localStorage[key])
     });
     console.log(allLocalStorage)
+=======
+>>>>>>> Bundled
   }
 }
 },{}],8:[function(require,module,exports){
@@ -1706,6 +1714,7 @@ async function bob_js (node) { // BOB.js
   document.body.innerHTML = '<h1>bob-test</h1>'
   document.body.style = 'background: pink;'
   // document.body.innerHTML = localStorage.bob
+<<<<<<< HEAD
 
 
   // const args_ana = [{ name: 'ana', pk: `6789ana`, sk: `9876oiuy` }]
@@ -1740,6 +1749,10 @@ async function bob_js (node) { // BOB.js
 
   bob()
   return
+=======
+  bob()
+  return 
+>>>>>>> Bundled
   function bob (c = 999) {
     const clearTimeout = window.clearTimeout
     const id = setInterval(() => {
@@ -1749,6 +1762,7 @@ async function bob_js (node) { // BOB.js
     B.onclick = () => clearTimeout(id)
     B.textContent = 'stop bob'
     document.body.append(B)
+<<<<<<< HEAD
   }
   // --------------------------------------
   async function connect ({ head, data }, port) {
@@ -1768,6 +1782,8 @@ async function bob_js (node) { // BOB.js
   async function create_task (msg){
     const {index, task_id} = await tm.on_create(msg)
     state.tasks[task_id] = index
+=======
+>>>>>>> Bundled
   }
 }
 },{}],10:[function(require,module,exports){
