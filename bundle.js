@@ -1574,16 +1574,20 @@ module.exports = [require, ana_js]
 
 function ana_js ({ require }) {
   document.body.innerHTML = '<h1>ana-test</h1>'
-  return function ana (c = 0) {
+  // document.body.innerHTML = localStorage.ana
+  document.body.style = 'background: skyblue;'
+  ana()
+  return 
+  function ana (c = 0) {
+    console.log('%cHere: ', 'color: red;', window)
+    const clearTimeout = window.clearTimeout
     const id = setInterval(() => {
       console.log('ana', localStorage.ana = c--)
     }, 1000)
     const B = document.createElement('button')
     B.onclick = () => clearTimeout(id)
     B.textContent = 'stop ana'
-    document.body.innerHTML = localStorage.ana
     document.body.append(B)
-    document.body.style = 'background: skyblue;'
   }
 }
 },{}],8:[function(require,module,exports){
@@ -1625,16 +1629,19 @@ module.exports = [require, bob_js]
 
 function bob_js ({ require }) {
   document.body.innerHTML = '<h1>bob-test</h1>'
-  return function bob (c = 999) {
+  document.body.style = 'background: pink;'
+  // document.body.innerHTML = localStorage.bob
+  bob()
+  return 
+  function bob (c = 999) {
+    const clearTimeout = window.clearTimeout
     const id = setInterval(() => {
       console.log('bob', localStorage.bob = c--)
     }, 1000)
     const B = document.createElement('button')
     B.onclick = () => clearTimeout(id)
     B.textContent = 'stop bob'
-    document.body.innerHTML = localStorage.bob
     document.body.append(B)
-    document.body.style = 'background: pink;'
   }
 }
 },{}],10:[function(require,module,exports){
@@ -1681,7 +1688,6 @@ function bob_js ({ require }) {
 
 
     const command = cmd_codec.decode(fragment) // @TODO: what if fragment is only a single string?
-
 
     if ('' in command) {
       const vault_app = command['']
@@ -1734,6 +1740,8 @@ function bob_js ({ require }) {
         Error,
         Math,
         setInterval,
+        clearTimeout,
+        localStorage
         // iframer,
       }
       app_window.window = app_window
@@ -2066,7 +2074,7 @@ function bob_js ({ require }) {
       return window
     }
     async function make_sys_sdk (window) { // -> sandboxed noscript iframe
-      const el = iframer('allow-same-origin', iwindow => {
+      const el = iframer('allow-same-origin allow-scripts', iwindow => {
         iwindow.name = name // e.g. 'taskchat'
         window.iwindow = iwindow
         window.name = loader.name
@@ -2114,7 +2122,7 @@ function bob_js ({ require }) {
       iframe.srcdoc = `<!DOCTYPE html>
       <html><head><meta charset="utf-8"></head><body></body></html>`
       iframe.sandbox = sandbox
-      iframe.style = 'border: 0; margin: 0; padding: 0; display: flex; flex-grow: 1;'
+      iframe.style = 'border: 0; margin: 0; padding: 0;  display: flex; flex-grow: 1'
       return iframe
     }
   }
@@ -2227,14 +2235,16 @@ async function file (node) {
     }
     grid.append(app)
   })
-  // const ana = require('./ana.js')
-  // const bob = require('./bob.js')
+  // const ana = require('ana-test.js')
+  // const bob = require('bob-test.js')
   // ;[`${bob}`, `${ana}`].map(ctrls)
-
+  // console.log('%cHere: ', 'color: red;', ana, bob)
+  // ana()
+  // bob()
   return // console.log({ana, bob})
   async function ctrls (src, i) {
     const el = document.createElement('div')
-    div.append(el)
+    // div.append(el)
     const style = `border: 0; width: 30vw; height: 30vh; display: flex; background-color: ${i ? 'gray' : 'brown'};`
     const { port } = await spawn(el, `${src}`, style)
 
