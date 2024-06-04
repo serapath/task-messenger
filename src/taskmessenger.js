@@ -2,7 +2,7 @@ module.exports = [require, program]
 
 async function program ({ require }) {
   console.log('@TODO: refactor!')
-  document.body.innerHTML = `<h1>@TODO: show task messenger<h1><h2>@TODO: refactor</h2>`
+  document.body.innerHTML = `<h3>@TODO: show + refactor task messenger<h3>`
   return
   const task_explorer = require('task_explorer')
   const chat_input = require('chat_input')
