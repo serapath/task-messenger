@@ -9,9 +9,18 @@ const REGISTRY = {
 }
 // 2. where to launch which module
 const PROGRAMS = {
+  // 1. root vault should see and have power to override anything
+  // 2. sub vault should see and have power to override anything sub
+  // 3. but root vault shoul still be able to override what sub sees and change it later as well?
+
+  // '': '?a=b?c=d?e=f',
+
+  // that's an OVERRIDE!
+
   "demo": {
     "tm": {
       "ana": {
+        // '?': '..',
         '': 'ana-data-vault',
         "taskchat": 'taskmessenger',
       },

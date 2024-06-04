@@ -1572,12 +1572,36 @@ async function ana_data_vault (node) {
 },{}],7:[function(require,module,exports){
 module.exports = [require, ana_js]
 
-function ana_js ({ require }) {
+async function ana_js (node) { // ANA.js
+
   document.body.innerHTML = '<h1>ana-test</h1>'
   // document.body.innerHTML = localStorage.ana
   document.body.style = 'background: skyblue;'
+
+
+  // const args_ana = [{ name: 'ana', pk: `6789ana`, sk: `9876oiuy` }]
+  // const args_bob = [{ name: 'bob', pk: `1234bob`, sk: `4321fdsa` }]
+  // void ANA_js({ args: args_ana  }) // ANA.js
+  // .then(o => BOB_js({ args: args_bob.concat(o) })) // BOB.js
+  const args_ana = [{ name: 'ana', pk: `6789ana`, sk: `9876oiuy` }]
+  // --------------------------------------
+  // SETUP
+  const { io, db, state, require, config: args } = node
+  // const TM = require('tm')
+  const [opts] = args_ana || args
+  // const tm = await TM(opts)
+  db.on((book_id, data) => {
+    console.log('from book', book_id, opts.name, 'received msg', data)
+   })
+  // CONNECT
+  const on = { connect, on_rx, on_join }
+  io.on(port => {
+    console.log('[ANA:IO]:connecting', port)
+    port.onmessage = ({ data: msg }) => on[msg.type](msg, port)
+  })
+  // --------------------------------------
   ana()
-  return 
+  return state.id
   function ana (c = 0) {
     console.log('%cHere: ', 'color: red;', window)
     const clearTimeout = window.clearTimeout
@@ -1588,6 +1612,36 @@ function ana_js ({ require }) {
     B.onclick = () => clearTimeout(id)
     B.textContent = 'stop ana'
     document.body.append(B)
+  }
+  // --------------------------------------
+  async function connect ({ head, data }, port) {
+    state.net[head.from] = port
+    state[`${state.id}-${head.from}`] = db({ name: `${state.id}-${head.from}` })
+    state[`${head.from}-${state.id}`] = db({ name: `${head.from}-${state.id}`, key: data })
+    state.net[head.from].postMessage({ head: {from: state.id, to: head.from}, type: 'connect', data: state[`${state.id}-${head.from}`].key })
+    setTimeout(() => on_tx({ head: {from: state.id, to: head.from}, type: 'on_rx', data: 'Hello'}), 200)
+  }
+  async function on_rx ({ head, data }){
+    const msg = await state[`${head.from}-${state.id}`].get(data)
+    console.log('Log from ana: ', msg)
+    print()
+   }
+  async function on_tx (msg){
+    const { head } = msg
+    state[`${state.id}-${head.to}`].add(msg)
+  }
+  async function on_join (id){
+    tm.on_join(id)
+  }
+  function print () {
+    const keys = Object.keys(localStorage);
+
+    // Iterate over the keys and retrieve corresponding values
+    const allLocalStorage = {};
+    keys.forEach(key => {
+      allLocalStorage[key] = JSON.parse(localStorage[key])
+    });
+    console.log(allLocalStorage)
   }
 }
 },{}],8:[function(require,module,exports){
@@ -1627,12 +1681,44 @@ async function bob_data_vault (node) {
 },{}],9:[function(require,module,exports){
 module.exports = [require, bob_js]
 
-function bob_js ({ require }) {
+async function bob_js (node) { // BOB.js
   document.body.innerHTML = '<h1>bob-test</h1>'
   document.body.style = 'background: pink;'
   // document.body.innerHTML = localStorage.bob
+
+
+  // const args_ana = [{ name: 'ana', pk: `6789ana`, sk: `9876oiuy` }]
+  // const args_bob = [{ name: 'bob', pk: `1234bob`, sk: `4321fdsa` }]
+  // void ANA_js({ args: args_ana  }) // ANA.js
+  // .then(o => BOB_js({ args: args_bob.concat(o) })) // BOB.js
+  const args_ana = [{ name: 'ana', pk: `6789ana`, sk: `9876oiuy` }]
+  const ana_id = args_ana[0].pk
+  const args_bob = [{ name: 'bob', pk: `1234bob`, sk: `4321fdsa` }]
+  // --------------------------------------
+  // SETUP
+  const { io, db, state, config: args } = node
+  // const TM = require('tm')
+  const [opts, peer_id = ana_id] = args_bob || args
+  // const tm = await TM(db)
+  db.on((book_id, data) => {
+    console.log('from book', book_id, opts.name, 'received msg', data)
+   })
+  // CONNECT
+  const on = { on_rx, connect }
+  io.on(port => {
+    console.log('[BOB:IO]:connecting', port)
+    port.onmessage = ({ data: msg }) => on[msg.type](msg)
+    state.net[peer_id] = port
+  })
+  await io.at(peer_id)
+  state[`${state.id}-${peer_id}`] = db({ name: `${state.id}-${peer_id}` })
+  state.net[peer_id].postMessage({ head: {from: state.id, to: peer_id}, type: 'connect', data: state[`${state.id}-${peer_id}`].key })
+  // create_task({ title: 'task1', parent: '' })
+  // on_tx({ head: {from: state.id, to: peer_id}, type: 'on_join', data: state.tasks['0'] })
+  // --------------------------------------
+
   bob()
-  return 
+  return
   function bob (c = 999) {
     const clearTimeout = window.clearTimeout
     const id = setInterval(() => {
@@ -1643,9 +1729,29 @@ function bob_js ({ require }) {
     B.textContent = 'stop bob'
     document.body.append(B)
   }
+  // --------------------------------------
+  async function connect ({ head, data }, port) {
+    state.net[head.from] = port
+    state[`${head.from}-${state.id}`] = db({ name: `${head.from}-${state.id}`, key: data })
+    on_tx({ head: {from: state.id, to: peer_id}, type: 'on_rx', data: 'Hi' })
+  }
+  async function on_rx ({ head, data }){
+    state[`${head.from}-${state.id}`] = db.reader(`${head.from}-${state.id}`, head.from)
+    const msg = await state[`${head.from}-${state.id}`].get(data)
+    console.log('Log from bob: ', msg)
+    }
+  async function on_tx (msg){
+    const { head } = msg
+    state[`${state.id}-${head.to}`].add(msg)
+  }
+  async function create_task (msg){
+    const {index, task_id} = await tm.on_create(msg)
+    state.tasks[task_id] = index
+  }
 }
 },{}],10:[function(require,module,exports){
 ;(function dat_container_runtime () { // [initial version: 2024.05.18]
+  document.head.replaceChildren()
   // ----------------------------------------------------------------------------
   module.exports = shim
   // ----------------------------------------------------------------------------
@@ -2029,10 +2135,39 @@ function bob_js ({ require }) {
     loader_sdk.name = loader.name
     loader_sdk.referrer = name
 
+    // const require = ((registry, modules = {}) => function require (name) {
+    //   if (modules[name]) return modules[name].exports
+    //   if (registry[name]) {
+    //     const exports = {}
+    //     const module = { exports }
+    //     registry[name](exports, module, require)
+    //     return (modules[name] = module).exports
+    //   }
+    //   throw new Error(`module "${name}" not found`)
+    // })(MODULES)
+
+    // @TODO: persist and make keys deterministic
+    const pk = `${Math.random()}`.slice(2)
+    const sk = `${Math.random()}`.slice(2)
+    /**************************************************************************
+      vault.js
+    **************************************************************************/
+    const IO = IO_js()
+    const DB = DB_js()
+    const state = { name, pk, sk, net: {}, tasks: {} }
+    state.seed = pk + sk
+    state.id = pk
+    const io = IO(name, state.seed)
+    const db = DB(state.seed)
+    // const book = db.author(seed)
+    // const version = (await book.len() || await book.add({ name, status: {}, net: {}, aka: {} })) - 1
+    const node = { io, db, state, box, spawn }
+    // -----------------------------------
 
 
-    const app_sdk = box(loader, safeguard(loader_sdk))
-    app_sdk.node = { box, spawn }
+    const app_sdk = box(loader, safeguard(loader_sdk)) // creates window.node
+    // populates window.node:
+    app_sdk.node = node
     app_sdk.port = port2
     app_sdk.Error = Error
     app_sdk.cmd_codec = cmd_codec
@@ -2085,7 +2220,140 @@ function bob_js ({ require }) {
       const { resolve, promise } = Promise.withResolvers()
       return promise
     }
-
+    /**************************************************************************
+      IO.js
+    **************************************************************************/
+    function IO_js () { // IO.js
+      const taken = {}
+      // @TODO: main issue is that port0 and maybe other ports have to be used
+      // to communicate across iframe (=process) boundaries
+      return IO
+      function IO (alias, seed) {
+        if (taken[seed]) throw new Error(`seed "${seed}" already taken`)
+        const pk = seed.slice(0, seed.length / 2)
+        const sk = seed.slice(seed.length / 2, seed.length)
+        const self = taken[pk] = { id: pk, peer: {} }
+        const io = { at, on }
+        return io
+        async function at (id, signal = AbortSignal.timeout(1000)) {
+          if (id === pk) throw new Error('cannot connect to loopback address')
+          if (!self.online) throw new Error('network must be online')
+          const peer = taken[id] || {}
+          // if (self.peer[id] && peer.peer[pk]) {
+          //   self.peer[id].close() || delete self.peer[id]
+          //   peer.peer[pk].close() || delete peer.peer[pk]
+          //   return console.log('disconnect')
+          // }
+          if (!peer.online) return wait() // peer with id is offline or doesnt exist
+          connect()
+          function wait () {
+            const { resolve, reject, promise } = Promise.withResolvers()
+            signal.onabort = () => reject(`timeout connecting to "${id}"`)
+            peer.online = { resolve }
+            return promise.then(connect)
+          }
+          function connect () {
+            signal.onabort = null
+            const { port1, port2 } = new MessageChannel()
+            port2.by = port1.to = id
+            port2.to = port1.by = pk
+            self.online(self.peer[id] = port1)
+            peer.online(peer.peer[pk] = port2)
+          }
+        }
+        function on (online) {
+          if (!online) return self.online = null
+          const resolve = self.online?.resolve
+          self.online = online
+          if (resolve) resolve(online)
+        }
+      }
+    }
+    /**************************************************************************
+      DB.js
+    **************************************************************************/
+    function DB_js () { // DB.js
+      const localStorage = {}
+      // @TODO: main issue is, that `port0` has to be used to communicate
+      // -> with root document to actually persist any data
+      const cache = { }
+      const admin = { reset, on: null }
+      DB.admin = admin
+      return DB
+      function reset () { localStorage.clear() }
+      function DB (seed, hook) {
+        if (!seed || typeof seed !== 'string') throw new Error('no seed provided')
+        DB.admin = undefined
+        const pk = seed.slice(0, seed.length / 2)
+        const sk = seed.slice(seed.length / 2, seed.length)
+        if (cache[pk]) throw new Error(`seed "${seed}" already in use`)
+        const db = open(pk) || save(cache[pk] = { // internal audit book
+          pk, sk, books: {}, names: {}, pages: [], state: {}, peers: []
+        })
+        db.pages.push({ type: 'load' })
+        make.on = on
+        return make
+        function on (debug) { hook = debug }
+        function make ({ name, key } = {}, _on) {
+          const book = load({ name, key })
+          key = book.pk
+          const own = db.books[book.pk]
+          const api = own ? { key, add, get, version, on } : { key, get, version, on }
+          return book && api
+          async function add (x) {
+            const { length: i } = book.pages
+            if (admin?.on?.(x, i, key, pk)) return
+            if (hook?.(key, x, i)) return
+            book.pages[i] = x
+            save(book)
+            book.peers.forEach(notify_reader)
+            return i
+            function notify_reader (port) {
+              if (typeof port === 'function') port([x, i, key])
+              else port.postMessage([x, i, key])
+            }
+          }
+          async function get (i) { return book.pages[i] } // opts = { wait: false }
+          async function version () { return book.pages.length - 1 }
+          async function on (name, fn) {
+            if (!fn) [name, fn] = ['add', name]
+            if (typeof fn === 'function' || fn.postMessage) book.peers.push(fn)
+            throw new Error('`fn` must be a function')
+          }
+        }
+        function save (book) {
+          localStorage[book.pk] = JSON.stringify(Object.assign({}, book, { peers: [] }))
+          return book
+        }
+        function open (key) {
+          // return cache[key] ||= JSON.parse(localStorage[key] || null)
+          return cache[key] || (cache[key] = JSON.parse(localStorage[key] || null))
+        }
+        function load ({ name, key }) {
+          if (sk === key || pk === key) throw new Error(`unauthorized access`)
+          if (key) {
+            const book = open(key)
+            if (book && name) {
+              if (!db.names[name]) (db.names[name] = key)
+              else if (db.names[name] !== key) throw new Error(`name "${name}" is in use`)
+            }
+            return book
+          } else if (name) {
+            key = db.names[name]
+            return key ? open(key) : init({name})
+          } else throw new Error('must provide `name` and/or `key` to load book')
+        }
+        function init (name) {
+          const [pk, sk] = [2, 2].map(x => `${Math.random()}`.slice(x))
+          const book = save(cache[pk] = { pk, sk, pages: [], state: {}, peers: [] })
+          db.names[name] = pk
+          db.books[pk] = sk
+          save(db)
+          return book
+        }
+      }
+    }
+    /*************************************************************************/
   }
   // ----------------------------------------------------------------------------
   function iframer (sandbox, done) { // v2024.05.30
@@ -2135,17 +2403,19 @@ function bob_js ({ require }) {
     height: 100%;
     margin: 0;
     box-sizing: border-box;
-    padding: 0;
-}`
+    padding: 0;`
+
     const tasks = {}
     const fragment = location.hash.slice(1)
     const command = cmd_codec.decode(fragment)
+    const { config, spawn } = node
+
+    if (JSON.stringify(config) !== JSON.stringify(command)) throw new Error('wat?')
 
     const icon_play = '▶️'
     const icon_stop = '⏹'
     const state = { program: {} }
-    const { config, spawn } = node
-    if (JSON.stringify(config) !== JSON.stringify(command)) throw new Error('wat?')
+
     const el = document.createElement('div')
     el.style = `display: flex;
     flex-direction: column;
@@ -2282,9 +2552,18 @@ const REGISTRY = {
 }
 // 2. where to launch which module
 const PROGRAMS = {
+  // 1. root vault should see and have power to override anything
+  // 2. sub vault should see and have power to override anything sub
+  // 3. but root vault shoul still be able to override what sub sees and change it later as well?
+
+  // '': '?a=b?c=d?e=f',
+
+  // that's an OVERRIDE!
+
   "demo": {
     "tm": {
       "ana": {
+        // '?': '..',
         '': 'ana-data-vault',
         "taskchat": 'taskmessenger',
       },
